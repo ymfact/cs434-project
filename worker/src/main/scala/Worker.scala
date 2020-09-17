@@ -1,9 +1,11 @@
-import cask.{Request, MainRoutes}
+
+import Worker.Context
+import cask.{MainRoutes, Request}
 import hello.Hello
 import org.apache.logging.log4j.scala.Logging
 
-class Worker(index: Int) extends MainRoutes with Logging {
-  override def port = 65400 + index
+class Worker(ctx: Context) extends MainRoutes with Logging {
+  override def port = 65400 + ctx.workerIndex
 
   @cask.post("/")
   def root(request: Request) : Array[Byte] = {
