@@ -6,17 +6,21 @@ lazy val root = project
   .in(file("."))
   .disablePlugins(AssemblyPlugin)
   .aggregate(common, master, worker)
+  .dependsOn(master, worker)
   .settings(
-    logSettings
+    logSettings,
+    libraryDependencies ++= commonDependencies
   )
 
 lazy val common = project
   .disablePlugins(AssemblyPlugin)
   .settings(
     name := "common",
-    commonSettings,
     logSettings,
-    libraryDependencies ++= commonDependencies
+    libraryDependencies ++= commonDependencies,
+    PB.targets in Compile := Seq(
+      scalapb.gen() -> (sourceManaged in Compile).value / "scalapb"
+    ),
   )
 
 lazy val master = project
@@ -44,18 +48,14 @@ lazy val worker = project
   )
 
 lazy val commonDependencies = Seq(
+  "org.scala-lang.modules" %% "scala-parallel-collections" % "0.2.0",
+
   "org.scalatest" %% "scalatest" % "3.2.2" % "test",
   "org.scalatestplus" %% "junit-4-13" % "3.2.2.0" % "test",
   "junit" % "junit" % "4.13" % "test",
   "org.apache.logging.log4j" %% "log4j-api-scala" % "12.0",
   "org.apache.logging.log4j" % "log4j-api" % "2.13.3",
   "org.apache.logging.log4j" % "log4j-core" % "2.13.3" % Runtime
-)
-
-lazy val commonSettings = Seq(
-  PB.targets in Compile := Seq(
-    scalapb.gen() -> (sourceManaged in Compile).value / "scalapb"
-  ),
 )
 
 lazy val assemblySettings = Seq(
