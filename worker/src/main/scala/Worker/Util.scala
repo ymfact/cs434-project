@@ -1,18 +1,18 @@
 package Worker
 
+import java.io.File
+
 import Common.SimulationUtils.lookForProgramInPath
-import io.undertow.util.FileUtils
+import Worker.Types.WorkerIndexType
 import org.apache.logging.log4j.scala.Logging
 
 import scala.sys.process.Process
 
-class Util(ctx: Context) extends Logging {
-  import ctx._
+class Util(dir: File, workerIndex: WorkerIndexType, partitionCount: Int, partitionSize: Int, isBinary: Boolean) extends Logging {
 
-  def clean(){
-    logger.info("clean")
-    FileUtils.deleteRecursive(workerDir.toPath)
-  }
+  val workerDir = new File(dir, s"$workerIndex")
+
+  def clean(): Unit = Common.Util.clean(workerDir)
 
   def gensort() {
     (0 until partitionCount).foreach { partitionIndex =>
@@ -24,9 +24,9 @@ class Util(ctx: Context) extends Logging {
     }
   }
 
-  private def gensortCommand(partitionIndex: Int) = {
+  private def gensortCommand(partitionIndex: Int): String = {
     val programPath = lookForProgramInPath("gensort").toString
-    val binaryArg = if(isBinary) "" else "-a"
+    val binaryArg = if (isBinary) "" else "-a"
     val beginningRecord = (workerIndex * partitionCount + partitionIndex) * partitionSize
     val fileName = s"$workerIndex/$partitionIndex"
     s"'$programPath' $binaryArg -b$beginningRecord $partitionSize $fileName"

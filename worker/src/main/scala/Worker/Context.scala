@@ -2,11 +2,13 @@ package Worker
 
 import java.io.File
 
-class Context(val dir: File, val workerIndex: Int, val partitionCount: Int, val partitionSize: Int, val isBinary: Boolean) {
+import Worker.Types.WorkerIndexType
 
-  private def util = new Util(this)
+class Context(dir: File, val workerIndex: WorkerIndexType, partitionCount: Int, partitionSize: Int, isBinary: Boolean) {
 
-  val workerDir = new File(dir, s"$workerIndex")
+  private val util = new Util(dir, workerIndex, partitionCount, partitionSize, isBinary)
+
+  def workerDir: File = util.workerDir
 
   def clean(): Unit = util.clean()
 

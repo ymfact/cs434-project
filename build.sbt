@@ -53,6 +53,7 @@ lazy val worker = project
 
 lazy val commonDependencies = Seq(
   "org.scala-lang.modules" %% "scala-parallel-collections" % "0.2.0",
+  "io.undertow" % "undertow-core" % "2.2.0.Final",
 
   "org.scalatest" %% "scalatest" % "3.2.2" % "test",
   "org.scalatestplus" %% "junit-4-13" % "3.2.2.0" % "test",
