@@ -1,13 +1,13 @@
 
 import Common.Protocol
 import Worker.{Context, Endpoint}
-import cask.endpoints.QueryParamReader.SimpleParam
 import cask.{MainRoutes, Request}
 import com.google.protobuf.ByteString
 import com.google.protobuf.empty.Empty
 import org.apache.logging.log4j.scala.Logging
 import records.Records
-import scalapb.GeneratedMessage
+
+import Common.Util.unitToEmpty
 
 class Worker(ctx: Context) extends MainRoutes with Logging {
 
@@ -17,13 +17,11 @@ class Worker(ctx: Context) extends MainRoutes with Logging {
   @cask.post("/clean")
   def clean(request: Request): Array[Byte] = ctx.endPoint(Protocol.Clean) (_ => {
     ctx.clean()
-    new Empty
   })(request)
 
   @Endpoint("/gensort", Protocol.Gensort)
   def gensort(request: Request): Empty = {
     ctx.gensort()
-    new Empty
   }
 
   @Endpoint("/sample", Protocol.Sample)
