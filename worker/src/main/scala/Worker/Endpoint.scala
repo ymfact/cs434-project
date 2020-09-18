@@ -1,22 +1,19 @@
 package Worker
 
 import Common.Protocol
-import cask.endpoints.{QueryParamReader, WebEndpoint}
-import cask.Request
+import cask.endpoints.{ParamReader, WebEndpoint}
 import cask.model.Response.Raw
-import cask.router.Result
+import cask.model.{Request, Response}
+import cask.router.{ArgReader, NoOpParser, Result}
 import scalapb.GeneratedMessage
 
 class Endpoint[OrderMsgType <: GeneratedMessage, ResultMsgType <: GeneratedMessage](val path: String, protocol: Protocol[OrderMsgType, ResultMsgType])
-  extends cask.router.Endpoint[Raw, ResultMsgType, Seq[String]]{
-
-  implicit def RequestToMsg(request: Request): OrderMsgType = protocol.OrderType.parseFrom(request.bytes)
-
-  type InputParser[T] = QueryParamReader[T]
-  def wrapPathSegment(s: String) = Seq(s)
+  extends cask.router.Endpoint[Response.Raw, ResultMsgType, Any] {
   val methods = Seq("post")
+  type InputParser[T] = NoOpParser[Any, T]
+  def wrapPathSegment(s: String) = Seq(s)
 
-  def wrapFunction(ctx: cask.Request, delegate: Delegate): Result[Raw] = {
-    delegate(WebEndpoint.buildMapFromQueryParams(ctx)).map(resultMsg => resultMsg.toByteArray)
+  def wrapFunction(ctx: Request, delegate: Delegate): Result[Response.Raw] = {
+    delegate(Map("data" -> protocol.OrderType.parseFrom(ctx.bytes))).map(resultMsg => resultMsg.toByteArray)
   }
 }

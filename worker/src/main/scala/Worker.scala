@@ -1,7 +1,7 @@
 
 import Common.Protocol
 import Worker.{Context, Endpoint}
-import cask.{MainRoutes, Request}
+import cask.MainRoutes
 import com.google.protobuf.ByteString
 import com.google.protobuf.empty.Empty
 import org.apache.logging.log4j.scala.Logging
@@ -14,18 +14,18 @@ class Worker(ctx: Context) extends MainRoutes with Logging {
   override def port: Int = 65400 + ctx.workerIndex
 
 
-  @cask.post("/clean")
-  def clean(request: Request): Array[Byte] = ctx.endPoint(Protocol.Clean) (_ => {
+  @Endpoint("/clean", Protocol.Clean)
+  def clean(data: Empty): Empty = {
     ctx.clean()
-  })(request)
+  }
 
   @Endpoint("/gensort", Protocol.Gensort)
-  def gensort(request: Request): Empty = {
+  def gensort(data: Empty): Empty = {
     ctx.gensort()
   }
 
   @Endpoint("/sample", Protocol.Sample)
-  def sample(request: Request): Records = {
+  def sample(data: Empty): Records = {
     new Records(Seq[ByteString]())
   }
 
