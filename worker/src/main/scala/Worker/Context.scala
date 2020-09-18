@@ -8,9 +8,9 @@ import cask.Request
 import com.google.protobuf.ByteString
 import scalapb.GeneratedMessage
 
-class Context(dir: File, val workerIndex: WorkerIndexType, partitionCount: Int, partitionSize: Int, isBinary: Boolean) {
+class Context(rootDir: File, val workerIndex: WorkerIndexType, partitionCount: Int, partitionSize: Int, isBinary: Boolean) {
 
-  private val util = new Util(dir, workerIndex, partitionCount, partitionSize, isBinary)
+  private val util = new Util(rootDir, workerIndex, partitionCount, partitionSize, isBinary)
 
   def workerDir: File = util.workerDir
 
@@ -22,7 +22,7 @@ class Context(dir: File, val workerIndex: WorkerIndexType, partitionCount: Int, 
     f(orderMsg).toByteArray
   }
 
-  def clean(): Unit = util.clean()
+  def clean(): Unit = Common.Util.clean(workerDir)
 
   def gensort(): Unit = util.gensort()
 

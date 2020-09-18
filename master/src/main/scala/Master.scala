@@ -19,4 +19,5 @@ class Master(ctx: Context) extends Logging {
     }.fold(ByteString.EMPTY)(_ concat _)
 
   logger.info(s"received sample size: ${sample.size}")
+  ctx.processSample(sample)
 }

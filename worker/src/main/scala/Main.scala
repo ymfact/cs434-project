@@ -6,7 +6,7 @@ object Main {
   def main(args: Array[String]): Unit = {
     Cli.parse(args).withCommand(new Parser) { parser =>
       val ctx = new Context(
-        dir = parser.dir,
+        rootDir = parser.dir,
         workerIndex = parser.workerIndex,
         partitionCount = parser.partitionCount,
         partitionSize = parser.partitionSize,

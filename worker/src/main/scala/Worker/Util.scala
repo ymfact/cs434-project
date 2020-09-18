@@ -1,21 +1,21 @@
 package Worker
 
 import java.io.File
+import java.nio.file.Path
 
-import Common.Const.BYTE_COUNT_IN_RECORD
+import Common.Const.{BYTE_COUNT_IN_RECORD, SAMPLE_COUNT}
+import Common.Data.readSome
 import Common.SimulationUtils.lookForProgramInPath
 import Worker.Types.WorkerIndexType
 import com.google.protobuf.ByteString
 import org.apache.logging.log4j.scala.Logging
 
-import scala.io.Source
 import scala.sys.process.Process
 
 class Util(rootDir: File, workerIndex: WorkerIndexType, partitionCount: Int, partitionSize: Int, isBinary: Boolean) extends Logging {
 
   val workerDir = new File(rootDir, s"$workerIndex")
-
-  def clean(): Unit = Common.Util.clean(workerDir)
+  val maxSampleCount = (partitionSize / 4)
 
   def gensort(): Unit = {
     (0 until partitionCount).foreach { partitionIndex =>
@@ -34,10 +34,8 @@ class Util(rootDir: File, workerIndex: WorkerIndexType, partitionCount: Int, par
   }
 
   def sample(): ByteString = {
-    val len = (partitionSize / 4) * BYTE_COUNT_IN_RECORD
-    val fileName = new File(workerDir, "0")
-    val stream = Source.fromFile(fileName).bufferedReader()
-    val seq = LazyList.continually(stream.read).map(_.toByte).take(len)
-    ByteString.copyFrom(seq.toArray)
+    val len = math.min(SAMPLE_COUNT, (partitionSize / 4)) * BYTE_COUNT_IN_RECORD
+    val path = new File(workerDir, "0").toPath
+    readSome(path, len)
   }
 }
