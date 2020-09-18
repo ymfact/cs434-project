@@ -10,10 +10,10 @@ class Master(ctx: Context) extends Logging {
 
   val TIMEOUT_MS = 60 * 60 * 1000
 
-  def send(index: Int, data: GeneratedMessage): Array[Byte] = {
-    val port = 65400 + index
+  def send(workerIndex: Int, msg: GeneratedMessage): Array[Byte] = {
+    val port = 65400 + workerIndex
     Http(s"http://localhost:${port}/")
-      .postData(data.toByteArray)
+      .postData(msg.toByteArray)
       .timeout(TIMEOUT_MS, TIMEOUT_MS)
       .asBytes
       .body

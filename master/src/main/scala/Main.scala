@@ -4,7 +4,11 @@ import org.backuity.clist.Cli
 object Main {
   def main(args: Array[String]): Unit = {
     Cli.parse(args).withCommand(new Parser) { case parser =>
-      val ctx = new Context(parser.dir, parser.workerCount)
+      val ctx = new Context(
+        dir=parser.dir,
+        workerCount=parser.workerCount,
+        partitionCount=parser.partitionCount,
+        partitionSize=parser.partitionSize)
       new Master(ctx)
     }
   }

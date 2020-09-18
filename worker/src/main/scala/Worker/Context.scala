@@ -2,8 +2,13 @@ package Worker
 
 import java.io.File
 
-import org.apache.logging.log4j.scala.Logging
+class Context(val dir: File, val workerIndex: Int, val partitionCount: Int, val partitionSize: Int, val isBinary: Boolean) {
 
-class Context(dir:File, val workerIndex: Int) extends Logging {
+  private def util = new Util(this)
 
+  val workerDir = new File(dir, s"$workerIndex")
+
+  def clean(): Unit = util.clean()
+
+  def gensort(): Unit = util.gensort()
 }
