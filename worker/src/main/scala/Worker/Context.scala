@@ -5,6 +5,7 @@ import java.io.File
 import Common.Protocol
 import Worker.Types.WorkerIndexType
 import cask.Request
+import com.google.protobuf.ByteString
 import scalapb.GeneratedMessage
 
 class Context(dir: File, val workerIndex: WorkerIndexType, partitionCount: Int, partitionSize: Int, isBinary: Boolean) {
@@ -24,4 +25,6 @@ class Context(dir: File, val workerIndex: WorkerIndexType, partitionCount: Int, 
   def clean(): Unit = util.clean()
 
   def gensort(): Unit = util.gensort()
+
+  def sample(): ByteString = util.sample()
 }

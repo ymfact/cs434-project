@@ -16,14 +16,12 @@ class TestIntegration extends AnyFunSuite {
 
     val workerContexts = (0 until WORKER_COUNT).map(new Worker.Context(FILE_DIR, _, PARTITION_COUNT, PARTITION_SIZE, IS_BINARY))
     val masterContext = new Master.Context(FILE_DIR, WORKER_COUNT, PARTITION_COUNT, PARTITION_SIZE)
-
-    val workers = workerContexts.map(new Worker(_))
-    val master = new Master(masterContext)
   }
 
   test("test") {
     new Launch{
-      Thread.sleep(10 * 1000)
+      val workers = workerContexts.map(new Worker(_))
+      val master = new Master(masterContext)
       workers.foreach{_.close()}
     }
   }

@@ -26,7 +26,7 @@ class Worker(ctx: Context) extends MainRoutes with Logging {
 
   @Endpoint("/sample", Protocol.Sample)
   def sample(data: Empty): Records = {
-    new Records(Seq[ByteString]())
+    new Records(ctx.sample)
   }
 
   def close() {
