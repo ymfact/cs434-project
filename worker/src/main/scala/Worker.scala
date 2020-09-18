@@ -1,21 +1,34 @@
 
-import Worker.Context
+import Common.Protocol
+import Worker.{Context, Endpoint}
+import cask.endpoints.QueryParamReader.SimpleParam
 import cask.{MainRoutes, Request}
-import hello.Hello
+import com.google.protobuf.ByteString
+import com.google.protobuf.empty.Empty
 import org.apache.logging.log4j.scala.Logging
+import records.Records
+import scalapb.GeneratedMessage
 
 class Worker(ctx: Context) extends MainRoutes with Logging {
-  import ctx._
 
-  override def port: Int = 65400 + workerIndex
+  override def port: Int = 65400 + ctx.workerIndex
 
-  @cask.post("/")
-  def root(request: Request) : Array[Byte] = {
-    val response = request.bytes
-    val hello = Hello.parseFrom(response)
-    logger.info(s"Hello from ${hello.from}")
-    gensort()
-    new Hello("Worker").toByteArray
+
+  @cask.post("/clean")
+  def clean(request: Request): Array[Byte] = ctx.endPoint(Protocol.Clean) (_ => {
+    ctx.clean()
+    new Empty
+  })(request)
+
+  @Endpoint("/gensort", Protocol.Gensort)
+  def gensort(request: Request): Empty = {
+    ctx.gensort()
+    new Empty
+  }
+
+  @Endpoint("/sample", Protocol.Sample)
+  def sample(request: Request): Records = {
+    new Records(Seq[ByteString]())
   }
 
   def close() {
@@ -25,6 +38,4 @@ class Worker(ctx: Context) extends MainRoutes with Logging {
   initialize()
   main(Array())
   logger.info(s"Initialized")
-
-  clean()
 }

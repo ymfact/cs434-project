@@ -20,7 +20,6 @@ class Util(dir: File, workerIndex: WorkerIndexType, partitionCount: Int, partiti
       logger.info(command)
       workerDir.mkdirs()
       val result = Process(command, dir).!!
-      logger.info(result)
     }
   }
 
