@@ -63,7 +63,7 @@ class Util(rootDir: File, workerIndex: WorkerIndexType, workerCount: Int, partit
       for( (workerIndex, records) <- classified.par) {
         val byteString = records.map(_.toByteString).fold(ByteString.EMPTY)(_ concat _)
         if(workerIndex == this.workerIndex){
-          val path = new File(workerDir, s"$partitionIndex").toPath
+          val path = new File(workerDir, s"temp$partitionIndex").toPath
           Data.write(path, byteString)
         }else{
           Common.Util.send(workerIndex, Collect, new Bytes(byteString))

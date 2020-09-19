@@ -3,7 +3,8 @@ package Worker
 import java.io.File
 
 import Common.Const.{BYTE_COUNT_IN_KEY, SAMPLE_COUNT}
-import Common.RecordTypes.MutableRecordArray
+import Common.RecordTypes.{ImmutableRecordArray, MutableRecordArray}
+import Common.Util.cleanTemp
 import Common.{Data, Protocol}
 import Worker.Types.WorkerIndexType
 import cask.Request
@@ -38,21 +39,37 @@ class Context(rootDir: File, val workerIndex: WorkerIndexType, workerCount: Int,
   }
 
   def collect(data: ByteString): Unit = {
-    val path = new File(workerDir, s"${util.getNextNewFileName}").toPath
+    val path = new File(workerDir, s"temp${util.getNextNewFileName}").toPath
     Data.write(path, data)
   }
 
   def finalSort(): Unit ={
     sortEachPartition
+    mergeAllPartitions
+    cleanTemp(workerDir)
   }
 
   private def sortEachPartition(): Unit ={
     (0 until partitionCount * workerCount).foreach({ partitionIndex =>
       logger.info(s"sorting partition $partitionIndex")
-      val path = new File(workerDir, s"$partitionIndex").toPath
+      val path = new File(workerDir, s"temp$partitionIndex").toPath
       val data = Data.readAll(path)
       val sorted = Data.inplaceSort(MutableRecordArray.from(data))
       Data.write(path, sorted.toByteString)
     })
+  }
+
+  private def mergeAllPartitions(): Unit ={
+    val partitions = (0 until partitionCount * workerCount).map({ partitionIndex =>
+      val path = new File(workerDir, s"temp$partitionIndex").toPath
+      ImmutableRecordArray.from(Data.readAll(path))
+    })
+    logger.info(s"merging all partitions")
+    val sorted = Data.sortFromSorteds(partitions)
+    for ((sorted, partitionIndex) <- sorted.grouped(partitionSize).zipWithIndex){
+      val path = new File(workerDir, s"$partitionIndex").toPath
+      val data = sorted.map(_.getByteArray).map(ByteString.copyFrom(_)).fold(ByteString.EMPTY)(_ concat _)
+      Data.write(path, data)
+    }
   }
 }

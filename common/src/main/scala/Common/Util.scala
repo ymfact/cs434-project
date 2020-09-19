@@ -1,6 +1,6 @@
 package Common
 
-import java.io.File
+import java.io.{File, FilenameFilter}
 import java.net.ConnectException
 
 import com.google.protobuf.empty.Empty
@@ -15,6 +15,11 @@ object Util extends Logging {
   def clean(dir: File){
     logger.info("clean")
     FileUtils.deleteRecursive(dir.toPath)
+  }
+
+  def cleanTemp(dir: File): Unit ={
+    logger.info(s"clean temp*")
+    dir.listFiles.filter(_.getName.startsWith("temp")).foreach(_.delete)
   }
 
   implicit def unitToEmpty (unit: Unit) = new Empty
