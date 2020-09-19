@@ -4,39 +4,61 @@ import Common.Const.{BYTE_COUNT_IN_KEY, BYTE_COUNT_IN_RECORD, BYTE_OFFSET_OF_KEY
 import com.google.protobuf
 import com.google.protobuf.ByteString
 
-import scala.collection.mutable
+import scala.collection.{SeqFactory, mutable}
 
 object RecordTypes {
 
-  class ImmutableRecordArray(arr: ByteString) extends Iterable[RecordPtr] {
+  trait RecordArray[+RecordType <: RecordPtr] extends collection.Seq[RecordType]
 
-    class Iterator extends scala.Iterator[RecordPtr] {
+  class ImmutableRecordArray(arr: ByteString) extends RecordArray[ImmutableRecordPtr] {
+
+    class Iterator extends scala.Iterator[ImmutableRecordPtr] {
       var currentIndex: Int = 0
 
-      override def hasNext: Boolean = currentIndex < arr.size() / BYTE_COUNT_IN_RECORD
+      override def hasNext: Boolean = currentIndex < ImmutableRecordArray.this.length
 
-      override def next(): RecordPtr = {
+      override def next(): ImmutableRecordPtr = {
         val next = new ImmutableRecordPtr(arr, currentIndex)
         currentIndex += 1
         next
       }
     }
 
-    override def iterator: scala.Iterator[RecordPtr] = new Iterator
+    override def iterator: scala.Iterator[ImmutableRecordPtr] = new Iterator
 
     implicit def toByteString: ByteString = arr
+
+    override def apply(i: Int): ImmutableRecordPtr = new ImmutableRecordPtr(arr, i)
+
+    override def length: Int = arr.size / BYTE_COUNT_IN_RECORD
   }
 
   object ImmutableRecordArray {
     implicit def from(byteString: ByteString): ImmutableRecordArray = new ImmutableRecordArray(byteString)
   }
 
-  class MutableRecordArray(arr: Array[Byte]) extends mutable.IndexedSeq[MutableRecordPtr] with Iterable[RecordPtr] {
-    override def update(idx: Int, elem: MutableRecordPtr): Unit = elem.toArray.copyToArray(arr, idx * BYTE_COUNT_IN_RECORD)
+  class MutableRecordArray(arr: Array[Byte]) extends RecordArray[MutableRecordPtr] with mutable.IndexedSeq[MutableRecordPtr] {
+    override def update(idx: Int, elem: MutableRecordPtr): Unit = update(idx, elem.toArray)
+
+    def update(idx: Int, elem: Array[Byte]): Unit = elem.copyToArray(arr, idx * BYTE_COUNT_IN_RECORD, BYTE_COUNT_IN_RECORD)
 
     override def apply(i: Int): MutableRecordPtr = new MutableRecordPtr(arr, i)
 
     override def length: Int = arr.length / BYTE_COUNT_IN_RECORD
+
+    class Iterator extends scala.Iterator[MutableRecordPtr] {
+      var currentIndex: Int = 0
+
+      override def hasNext: Boolean = currentIndex < MutableRecordArray.this.length
+
+      override def next(): MutableRecordPtr = {
+        val next = new MutableRecordPtr(arr, currentIndex)
+        currentIndex += 1
+        next
+      }
+    }
+
+    override def iterator: scala.Iterator[MutableRecordPtr] = new Iterator
 
     def toByteArray: Array[Byte] = arr
 
@@ -50,6 +72,8 @@ object RecordTypes {
   }
 
   trait RecordPtr extends Ordered[RecordPtr] {
+    def getKeyByteString: ByteString
+
     def getKeyByte(keyIndex: Int): Byte
 
     override def compare(that: RecordPtr): Int = compareKey(this, that, BYTE_OFFSET_OF_KEY)
@@ -64,18 +88,33 @@ object RecordTypes {
         else
           compared
       }
+
+    def getByteArray: Array[Byte]
+
+    override def toString = new String(getByteArray)
   }
 
   class MutableRecordPtr(val arr: Array[Byte], index: Int) extends RecordPtr {
-    implicit def toArray[Array[Byte]]: scala.Array[Byte] = arr.slice(index * BYTE_COUNT_IN_RECORD, (index + 1) * BYTE_COUNT_IN_RECORD)
 
-    override def getKeyByte(keyIndex: Int): Byte = arr(index * BYTE_COUNT_IN_KEY + BYTE_OFFSET_OF_KEY + keyIndex)
+    override def getKeyByte(keyIndex: Int): Byte = arr(index * BYTE_COUNT_IN_RECORD + BYTE_OFFSET_OF_KEY + keyIndex)
+
+    implicit def toArray: scala.Array[Byte] = arr.slice(index * BYTE_COUNT_IN_RECORD, (index + 1) * BYTE_COUNT_IN_RECORD)
+
+    def getByteArray: Array[Byte] = toArray
+
+    override def getKeyByteString: ByteString =
+      ByteString.copyFrom(arr.slice(index * BYTE_COUNT_IN_RECORD + BYTE_OFFSET_OF_KEY, index * BYTE_COUNT_IN_RECORD + BYTE_OFFSET_OF_KEY + BYTE_COUNT_IN_RECORD))
   }
 
   class ImmutableRecordPtr(arr: ByteString, index: Int) extends RecordPtr {
-    override def getKeyByte(keyIndex: Int): Byte = arr.byteAt(index * BYTE_COUNT_IN_KEY + BYTE_OFFSET_OF_KEY + keyIndex)
+    override def getKeyByte(keyIndex: Int): Byte = arr.byteAt(index * BYTE_COUNT_IN_RECORD + BYTE_OFFSET_OF_KEY + keyIndex)
 
     implicit def toByteString[ByteString]: protobuf.ByteString = arr.substring(index * BYTE_COUNT_IN_RECORD, (index + 1) * BYTE_COUNT_IN_RECORD)
+
+    def getByteArray: Array[Byte] = toByteString.toByteArray
+
+    override def getKeyByteString: ByteString =
+      arr.substring(index * BYTE_COUNT_IN_RECORD + BYTE_OFFSET_OF_KEY, index * BYTE_COUNT_IN_RECORD + BYTE_OFFSET_OF_KEY + BYTE_COUNT_IN_RECORD)
   }
 
 }

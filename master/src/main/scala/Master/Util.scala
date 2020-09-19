@@ -2,8 +2,9 @@ package Master
 
 import java.io.File
 
+import Common.Const.SAMPLE_COUNT
 import Common.Data
-import Common.RecordTypes.MutableRecordArray
+import Common.RecordTypes.{ImmutableRecordArray, ImmutableRecordPtr, RecordArray}
 import Master.Types.WorkerIndexType
 import com.google.protobuf.ByteString
 import org.apache.logging.log4j.scala.Logging
@@ -30,7 +31,8 @@ class Util(rootDir: File, workerCount: Int, partitionCount: Int, partitionSize: 
   }
   
   def processSample(data: ParSeq[ByteString]) = {
-    val recordArrays = data.map(MutableRecordArray.from).seq
-    Data.sortFromSorteds(recordArrays)
+    val recordArrays = data.map(ImmutableRecordArray.from).seq
+    val sorted = Data.sortFromSorteds(recordArrays)
+    sorted.grouped(SAMPLE_COUNT).map(_.head.getKeyByteString)
   }
 }

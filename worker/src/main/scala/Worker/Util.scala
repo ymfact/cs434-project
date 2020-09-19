@@ -36,9 +36,8 @@ class Util(rootDir: File, workerIndex: WorkerIndexType, partitionCount: Int, par
   }
 
   def sample(): ByteString = {
-    val len = math.min(SAMPLE_COUNT, (partitionSize / 4)) * BYTE_COUNT_IN_RECORD
     val path = new File(workerDir, "0").toPath
-    val data = readSome(path, len)
+    val data = readSome(path, SAMPLE_COUNT * BYTE_COUNT_IN_RECORD)
     val sorted = Data.inplaceSort(MutableRecordArray.from(data))
     sorted.toByteString
   }

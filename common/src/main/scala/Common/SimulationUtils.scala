@@ -17,14 +17,13 @@ object SimulationUtils extends Logging{
       val proc = pb.start
       val errCode = proc.waitFor
       if (errCode == 0) {
-        try {
           val reader = new BufferedReader(new InputStreamReader(proc.getInputStream))
           try foundProgram = Paths.get(reader.readLine)
           finally if (reader != null) reader.close()
-        }
         logger.info(desiredProgram + " has been found at : " + foundProgram)
       }
-      else logger.warn(desiredProgram + " not in PATH")
+      else
+        logger.warn(desiredProgram + " not in PATH")
     } catch {
       case ex@(_: IOException | _: InterruptedException) =>
         logger.warn("Something went wrong while searching for " + desiredProgram)

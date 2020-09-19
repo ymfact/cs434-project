@@ -3,24 +3,42 @@ package Common
 import java.io.InputStream
 import java.nio.file.{Files, Path}
 
-import Common.Const.BYTE_COUNT_IN_RECORD
-import Common.RecordTypes.{MutableRecordArray, RecordPtr}
+import Common.RecordTypes.{MutableRecordArray, RecordArray, RecordPtr}
 import com.google.protobuf.ByteString
+import org.apache.logging.log4j.scala.Logging
 
-import scala.collection.parallel.ParIterable
+import scala.collection.mutable
 
-object Data {
+object Data extends Logging {
 
-  private def stream(path: Path): InputStream = Files.newInputStream(path)
+  private def openStream(path: Path): InputStream = Files.newInputStream(path)
 
-  def readAll(path: Path): ByteString = ByteString.readFrom(stream(path))
+  def readAll(path: Path): ByteString = ByteString.readFrom(openStream(path))
 
-  def readSome(path: Path, len: Int): Array[Byte] = LazyList.continually(stream(path).read).map(_.toByte).take(len).toArray
+  def readSome(path: Path, len: Int): Array[Byte] = {
+    val stream = openStream(path)
+    LazyList.continually(stream.read).map(_.toByte).take(len).toArray
+  }
 
-  def sortFromSorteds[RecordArrayType <: Iterable[RecordPtr]](data: Iterable[RecordArrayType]): ParIterable[MutableRecordArray] = ???
+  def sortFromSorteds(arrays: collection.Seq[RecordArray[RecordPtr]]): Iterator[RecordPtr] = {
+    new Iterator[RecordPtr]{
+      private val queue = mutable.SortedMap[RecordPtr, Iterator[RecordPtr]]()
+      private var iter = queue.addAll(arrays.map(_.iterator).map(iter => iter.next() -> iter)).iterator
+
+      override def hasNext: Boolean = iter.hasNext
+      override def next(): RecordPtr = {
+        val (record, arrayIter) = iter.next()
+        queue.remove(record)
+        if(arrayIter.hasNext)
+          queue.addOne(arrayIter.next() -> arrayIter)
+        iter = queue.iterator
+        record
+      }
+    }
+  }
 
   def inplaceSort(data: MutableRecordArray): MutableRecordArray = {
-    inplaceSort(data, 0, data.length / BYTE_COUNT_IN_RECORD)
+    inplaceSort(data, 0, data.length - 1)
     data
   }
 
@@ -29,16 +47,13 @@ object Data {
     var currentLeft = beginLeft
     var currentRight = currentLastLeft + 1
     if (arr(currentLastLeft) <= arr(currentRight)) return
-    while ( {
-      currentLeft <= currentLastLeft && currentRight <= lastRight
-    }) {
-      if (arr(currentLeft) <= arr(currentRight)) currentLeft += 1
+    while (currentLeft <= currentLastLeft && currentRight <= lastRight)
+      if (arr(currentLeft) <= arr(currentRight))
+        currentLeft += 1
       else {
-        val value = arr(currentRight)
+        val value = arr(currentRight).toArray
         var index = currentRight
-        while ( {
-          index != currentLeft
-        }) {
+        while (index != currentLeft) {
           arr(index) = arr(index - 1)
           index -= 1
         }
@@ -47,7 +62,6 @@ object Data {
         currentLastLeft += 1
         currentRight += 1
       }
-    }
   }
 
   private def inplaceSort(arr: MutableRecordArray, begin: Int, last: Int): Unit = {

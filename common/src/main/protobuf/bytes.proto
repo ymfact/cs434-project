@@ -1,5 +1,5 @@
 syntax = "proto3";
 
-message Records {
+message Bytes {
   bytes bytes = 1;
 }

@@ -1,12 +1,10 @@
 
+import bytes.Bytes
 import Common.Protocol
 import Worker.{Context, Endpoint}
 import cask.MainRoutes
-import com.google.protobuf.ByteString
 import com.google.protobuf.empty.Empty
 import org.apache.logging.log4j.scala.Logging
-import records.Records
-
 import Common.Util.unitToEmpty
 
 class Worker(ctx: Context) extends MainRoutes with Logging {
@@ -25,8 +23,13 @@ class Worker(ctx: Context) extends MainRoutes with Logging {
   }
 
   @Endpoint("/sample", Protocol.Sample)
-  def sample(data: Empty): Records = {
-    new Records(ctx.sample)
+  def sample(data: Empty): Bytes = {
+    new Bytes(ctx.sample)
+  }
+
+  @Endpoint("/sample_result", Protocol.SampleResult)
+  def sample_result(data: Bytes): Empty = {
+    logger.info(s"key received: ${data.bytes}")
   }
 
   def close() {

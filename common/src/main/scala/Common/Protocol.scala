@@ -1,7 +1,7 @@
 package Common
 
+import bytes.Bytes
 import com.google.protobuf.empty.Empty
-import records.Records
 import scalapb.GeneratedMessage
 import scalapb.GeneratedMessageCompanion
 
@@ -22,9 +22,14 @@ object Protocol {
     val ResultType: Empty.type = Empty
     val endpoint: String = "gensort"
   }
-  object Sample extends Protocol[Empty, Records]{
+  object Sample extends Protocol[Empty, Bytes]{
     val OrderType: Empty.type = Empty
-    val ResultType: Records.type = Records
+    val ResultType: Bytes.type = Bytes
     val endpoint: String = "sample"
+  }
+  object SampleResult extends Protocol[Bytes, Empty]{
+    val OrderType: Bytes.type = Bytes
+    val ResultType: Empty.type = Empty
+    val endpoint: String = "sample_result"
   }
 }
