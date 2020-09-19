@@ -7,8 +7,9 @@ import cask.model.{Request, Response}
 import cask.router.{ArgReader, NoOpParser, Result}
 import scalapb.GeneratedMessage
 
-class Endpoint[OrderMsgType <: GeneratedMessage, ResultMsgType <: GeneratedMessage](val path: String, protocol: Protocol[OrderMsgType, ResultMsgType])
+class Endpoint[OrderMsgType <: GeneratedMessage, ResultMsgType <: GeneratedMessage](protocol: Protocol[OrderMsgType, ResultMsgType])
   extends cask.router.Endpoint[Response.Raw, ResultMsgType, Any] {
+  val path = s"/${protocol.endpoint}"
   val methods = Seq("post")
   type InputParser[T] = NoOpParser[Any, T]
   def wrapPathSegment(s: String) = Seq(s)
