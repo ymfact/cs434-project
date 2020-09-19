@@ -2,6 +2,8 @@ package Master
 
 import java.io.File
 
+import Common.Data
+import Common.RecordTypes.MutableRecordArray
 import Master.Types.WorkerIndexType
 import com.google.protobuf.ByteString
 import org.apache.logging.log4j.scala.Logging
@@ -27,5 +29,8 @@ class Util(rootDir: File, workerCount: Int, partitionCount: Int, partitionSize: 
     resultType.parseFrom(response)
   }
   
-  def processSample(data: ParSeq[ByteString]) = ???
+  def processSample(data: ParSeq[ByteString]) = {
+    val recordArrays = data.map(MutableRecordArray.from).seq
+    Data.sortFromSorteds(recordArrays)
+  }
 }

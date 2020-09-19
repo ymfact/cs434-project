@@ -8,8 +8,9 @@ import scala.collection.mutable
 
 object RecordTypes {
 
-  class ImmutableRecordArray(arr: ByteString) extends Iterable[RecordPtr]{
-    class Iterator extends scala.Iterator[RecordPtr]{
+  class ImmutableRecordArray(arr: ByteString) extends Iterable[RecordPtr] {
+
+    class Iterator extends scala.Iterator[RecordPtr] {
       var currentIndex: Int = 0
 
       override def hasNext: Boolean = currentIndex < arr.size() / BYTE_COUNT_IN_RECORD
@@ -22,25 +23,33 @@ object RecordTypes {
     }
 
     override def iterator: scala.Iterator[RecordPtr] = new Iterator
+
+    implicit def toByteString: ByteString = arr
   }
 
-  object ImmutableRecordArray{
+  object ImmutableRecordArray {
     implicit def from(byteString: ByteString): ImmutableRecordArray = new ImmutableRecordArray(byteString)
   }
 
-  class MutableRecordArray(arr: Array[Byte]) extends mutable.IndexedSeq[MutableRecordPtr] with Iterable[RecordPtr]{
+  class MutableRecordArray(arr: Array[Byte]) extends mutable.IndexedSeq[MutableRecordPtr] with Iterable[RecordPtr] {
     override def update(idx: Int, elem: MutableRecordPtr): Unit = elem.toArray.copyToArray(arr, idx * BYTE_COUNT_IN_RECORD)
 
     override def apply(i: Int): MutableRecordPtr = new MutableRecordPtr(arr, i)
 
     override def length: Int = arr.length / BYTE_COUNT_IN_RECORD
+
+    def toByteArray: Array[Byte] = arr
+
+    def toByteString: ByteString = ByteString.copyFrom(arr)
   }
 
-  object MutableRecordArray{
+  object MutableRecordArray {
     implicit def from(byteString: ByteString): MutableRecordArray = new MutableRecordArray(byteString.toByteArray)
+
+    implicit def from(array: Array[Byte]): MutableRecordArray = new MutableRecordArray(array)
   }
 
-  trait RecordPtr extends Ordered[RecordPtr]{
+  trait RecordPtr extends Ordered[RecordPtr] {
     def getKeyByte(keyIndex: Int): Byte
 
     override def compare(that: RecordPtr): Int = compareKey(this, that, BYTE_OFFSET_OF_KEY)

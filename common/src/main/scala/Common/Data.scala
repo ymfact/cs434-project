@@ -15,10 +15,10 @@ object Data {
 
   def readAll(path: Path): ByteString = ByteString.readFrom(stream(path))
 
-  def readSome(path: Path, len: Int): ByteString = ByteString.copyFrom(LazyList.continually(stream(path).read).map(_.toByte).take(len).toArray)
+  def readSome(path: Path, len: Int): Array[Byte] = LazyList.continually(stream(path).read).map(_.toByte).take(len).toArray
 
   def sortFromSorteds[RecordArrayType <: Iterable[RecordPtr]](data: Iterable[RecordArrayType]): ParIterable[MutableRecordArray] = ???
-  
+
   def inplaceSort(data: MutableRecordArray): MutableRecordArray = {
     inplaceSort(data, 0, data.length / BYTE_COUNT_IN_RECORD)
     data
