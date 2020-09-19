@@ -27,9 +27,16 @@ class Worker(ctx: Context) extends MainRoutes with Logging {
     new Bytes(ctx.sample)
   }
 
-  @Endpoint("/sample_result", Protocol.SampleResult)
-  def sample_result(data: Bytes): Empty = {
-    logger.info(s"key received: ${data.bytes}")
+  @Endpoint("/classify", Protocol.Classify)
+  def classify(data: Bytes): Empty = {
+    logger.info(s"key received: ${data.bytes.size()}")
+    ctx.classify(data.bytes)
+  }
+
+  @Endpoint("/collect", Protocol.Collect)
+  def collect(data: Bytes): Empty = {
+    logger.info(s"collect received: ${data.bytes.size()}")
+    ctx.collect(data.bytes)
   }
 
   def close() {

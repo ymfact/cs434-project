@@ -13,11 +13,12 @@ class TestGensort extends AnyFunSuite {
   trait Env {
     val FILE_DIR = new File("D:\\works\\csed434\\project_temp\\")
     val WORKER_INDEX = 1
+    val WORKER_COUNT = 4
     val PARTITION_COUNT = 3
     val PARTITION_SIZE = 0x10000
     val IS_BINARY = false
 
-    val ctx = new Worker.Context(FILE_DIR, WORKER_INDEX, PARTITION_COUNT, PARTITION_SIZE, IS_BINARY)
+    val ctx = new Worker.Context(FILE_DIR, WORKER_INDEX, WORKER_COUNT, PARTITION_COUNT, PARTITION_SIZE, IS_BINARY)
   }
 
   test("clean") {

@@ -1,6 +1,6 @@
 package Common
 
-import java.io.InputStream
+import java.io.{InputStream, OutputStream}
 import java.nio.file.{Files, Path}
 
 import Common.RecordTypes.{MutableRecordArray, RecordArray, RecordPtr}
@@ -8,17 +8,21 @@ import com.google.protobuf.ByteString
 import org.apache.logging.log4j.scala.Logging
 
 import scala.collection.mutable
+import scala.util.Using
 
 object Data extends Logging {
 
-  private def openStream(path: Path): InputStream = Files.newInputStream(path)
+  private def inputStream(path: Path): InputStream = Files.newInputStream(path)
+  private def outputStream(path: Path): OutputStream = Files.newOutputStream(path)
 
-  def readAll(path: Path): ByteString = ByteString.readFrom(openStream(path))
+  def readAll(path: Path): ByteString = ByteString.readFrom(inputStream(path))
 
   def readSome(path: Path, len: Int): Array[Byte] = {
-    val stream = openStream(path)
+    val stream = inputStream(path)
     LazyList.continually(stream.read).map(_.toByte).take(len).toArray
   }
+
+  def write(path: Path, data: ByteString): Unit = data.writeTo(outputStream(path))
 
   def sortFromSorteds(arrays: collection.Seq[RecordArray[RecordPtr]]): Iterator[RecordPtr] = {
     new Iterator[RecordPtr]{
@@ -51,7 +55,7 @@ object Data extends Logging {
       if (arr(currentLeft) <= arr(currentRight))
         currentLeft += 1
       else {
-        val value = arr(currentRight).toArray
+        val value = arr(currentRight).getByteArray
         var index = currentRight
         while (index != currentLeft) {
           arr(index) = arr(index - 1)

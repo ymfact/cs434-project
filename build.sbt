@@ -30,11 +30,7 @@ lazy val master = project
     name := "master",
     assemblySettings,
     logSettings,
-    libraryDependencies ++= commonDependencies ++ Seq(
-      "org.backuity.clist" %% "clist-core" % "3.5.1",
-      "org.backuity.clist" %% "clist-macros" % "3.5.1" % "provided",
-      "org.scalaj" %% "scalaj-http" % "2.4.2",
-    )
+    libraryDependencies ++= commonDependencies
   )
 
 lazy val worker = project
@@ -45,13 +41,14 @@ lazy val worker = project
     assemblySettings,
     logSettings,
     libraryDependencies ++= commonDependencies ++ Seq(
-      "org.backuity.clist" %% "clist-core" % "3.5.1",
-      "org.backuity.clist" %% "clist-macros" % "3.5.1" % "provided",
       "com.lihaoyi" %% "cask" % "0.7.5",
     )
   )
 
 lazy val commonDependencies = Seq(
+  "org.backuity.clist" %% "clist-core" % "3.5.1",
+  "org.backuity.clist" %% "clist-macros" % "3.5.1" % "provided",
+  "org.scalaj" %% "scalaj-http" % "2.4.2",
   "org.scala-lang.modules" %% "scala-parallel-collections" % "0.2.0",
   "io.undertow" % "undertow-core" % "2.2.0.Final",
 

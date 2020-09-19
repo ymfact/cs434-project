@@ -27,9 +27,14 @@ object Protocol {
     val ResultType: Bytes.type = Bytes
     val endpoint: String = "sample"
   }
-  object SampleResult extends Protocol[Bytes, Empty]{
+  object Classify extends Protocol[Bytes, Empty]{
     val OrderType: Bytes.type = Bytes
     val ResultType: Empty.type = Empty
-    val endpoint: String = "sample_result"
+    val endpoint: String = "classify"
+  }
+  object Collect extends Protocol[Bytes, Empty]{
+    val OrderType: Bytes.type = Bytes
+    val ResultType: Empty.type = Empty
+    val endpoint: String = "collect"
   }
 }

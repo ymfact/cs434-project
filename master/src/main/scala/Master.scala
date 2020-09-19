@@ -1,11 +1,9 @@
 import Common.Const.BYTE_COUNT_IN_RECORD
-import Common.Protocol.{Clean, Gensort, Sample, SampleResult}
+import Common.Protocol.{Clean, Gensort, Sample, Classify}
 import Master.Context
 import bytes.Bytes
+import com.google.protobuf.ByteString
 import org.apache.logging.log4j.scala.Logging
-
-import scala.collection.parallel.CollectionConverters.seqIsParallelizable
-import scala.collection.parallel.ParIterable
 
 class Master(ctx: Context) extends Logging {
 
@@ -22,11 +20,11 @@ class Master(ctx: Context) extends Logging {
       result.bytes
     }.toSeq
 
-  samples.foreach(sample => logger.info(s"received sample count: ${sample.size / BYTE_COUNT_IN_RECORD}"))
+  samples.foreach(sample => logger.info(s"sample received: ${sample.size}"))
 
-  val sampleResults = ctx.processSample(samples)
+  val sampleRanges = ctx.processSample(samples).fold(ByteString.EMPTY)(_ concat _)
 
-  ctx.broadcast.zip(sampleResults.toSeq.par).map{ case (worker, sampleResult) =>
-    worker.send(SampleResult, new Bytes(bytes=sampleResult))
+  ctx.broadcast.map{ worker =>
+    worker.send(Classify, new Bytes(bytes=sampleRanges))
   }.seq
 }

@@ -4,7 +4,7 @@ import Common.Const.{BYTE_COUNT_IN_KEY, BYTE_COUNT_IN_RECORD, BYTE_OFFSET_OF_KEY
 import com.google.protobuf
 import com.google.protobuf.ByteString
 
-import scala.collection.{SeqFactory, mutable}
+import scala.collection.mutable
 
 object RecordTypes {
 
@@ -38,7 +38,7 @@ object RecordTypes {
   }
 
   class MutableRecordArray(arr: Array[Byte]) extends RecordArray[MutableRecordPtr] with mutable.IndexedSeq[MutableRecordPtr] {
-    override def update(idx: Int, elem: MutableRecordPtr): Unit = update(idx, elem.toArray)
+    override def update(idx: Int, elem: MutableRecordPtr): Unit = update(idx, elem.getByteArray)
 
     def update(idx: Int, elem: Array[Byte]): Unit = elem.copyToArray(arr, idx * BYTE_COUNT_IN_RECORD, BYTE_COUNT_IN_RECORD)
 
@@ -72,19 +72,33 @@ object RecordTypes {
   }
 
   trait RecordPtr extends Ordered[RecordPtr] {
+
     def getKeyByteString: ByteString
 
     def getKeyByte(keyIndex: Int): Byte
 
-    override def compare(that: RecordPtr): Int = compareKey(this, that, BYTE_OFFSET_OF_KEY)
+    override def compare(that: RecordPtr): Int = compareKey(that, 0)
 
-    private def compareKey(left: RecordPtr, right: RecordPtr, checkingKeyIndex: Int): Int =
-      if (checkingKeyIndex == BYTE_OFFSET_OF_KEY + BYTE_COUNT_IN_KEY)
+    def compare(that: ByteString): Int = compareKey(that, 0)
+
+    private def compareKey(that: RecordPtr, checkingKeyIndex: Int): Int =
+      if (checkingKeyIndex == BYTE_COUNT_IN_KEY)
         0
       else {
-        val compared = left.getKeyByte(checkingKeyIndex).compare(right.getKeyByte(checkingKeyIndex))
+        val compared = getKeyByte(checkingKeyIndex).compare(that.getKeyByte(checkingKeyIndex))
         if (compared == 0)
-          compareKey(left, right, checkingKeyIndex + 1)
+          compareKey(that, checkingKeyIndex + 1)
+        else
+          compared
+      }
+
+    private def compareKey(that: ByteString, checkingKeyIndex: Int): Int =
+      if (checkingKeyIndex == BYTE_COUNT_IN_KEY)
+        0
+      else {
+        val compared = getKeyByte(checkingKeyIndex).compare(that.byteAt(checkingKeyIndex))
+        if (compared == 0)
+          compareKey(that, checkingKeyIndex + 1)
         else
           compared
       }
@@ -98,23 +112,21 @@ object RecordTypes {
 
     override def getKeyByte(keyIndex: Int): Byte = arr(index * BYTE_COUNT_IN_RECORD + BYTE_OFFSET_OF_KEY + keyIndex)
 
-    implicit def toArray: scala.Array[Byte] = arr.slice(index * BYTE_COUNT_IN_RECORD, (index + 1) * BYTE_COUNT_IN_RECORD)
-
-    def getByteArray: Array[Byte] = toArray
+    def getByteArray: scala.Array[Byte] = arr.slice(index * BYTE_COUNT_IN_RECORD, (index + 1) * BYTE_COUNT_IN_RECORD)
 
     override def getKeyByteString: ByteString =
-      ByteString.copyFrom(arr.slice(index * BYTE_COUNT_IN_RECORD + BYTE_OFFSET_OF_KEY, index * BYTE_COUNT_IN_RECORD + BYTE_OFFSET_OF_KEY + BYTE_COUNT_IN_RECORD))
+      ByteString.copyFrom(arr.slice(index * BYTE_COUNT_IN_RECORD + BYTE_OFFSET_OF_KEY, index * BYTE_COUNT_IN_RECORD + BYTE_OFFSET_OF_KEY + BYTE_COUNT_IN_KEY))
   }
 
   class ImmutableRecordPtr(arr: ByteString, index: Int) extends RecordPtr {
     override def getKeyByte(keyIndex: Int): Byte = arr.byteAt(index * BYTE_COUNT_IN_RECORD + BYTE_OFFSET_OF_KEY + keyIndex)
 
-    implicit def toByteString[ByteString]: protobuf.ByteString = arr.substring(index * BYTE_COUNT_IN_RECORD, (index + 1) * BYTE_COUNT_IN_RECORD)
+    def toByteString: protobuf.ByteString = arr.substring(index * BYTE_COUNT_IN_RECORD, (index + 1) * BYTE_COUNT_IN_RECORD)
 
     def getByteArray: Array[Byte] = toByteString.toByteArray
 
     override def getKeyByteString: ByteString =
-      arr.substring(index * BYTE_COUNT_IN_RECORD + BYTE_OFFSET_OF_KEY, index * BYTE_COUNT_IN_RECORD + BYTE_OFFSET_OF_KEY + BYTE_COUNT_IN_RECORD)
+      arr.substring(index * BYTE_COUNT_IN_RECORD + BYTE_OFFSET_OF_KEY, index * BYTE_COUNT_IN_RECORD + BYTE_OFFSET_OF_KEY + BYTE_COUNT_IN_KEY)
   }
 
 }
