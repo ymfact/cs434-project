@@ -8,6 +8,8 @@ import org.apache.logging.log4j.scala.Logging
 import scalaj.http.Http
 import scalapb.{GeneratedMessage, GeneratedMessageCompanion}
 
+import scala.collection.parallel.ParSeq
+
 class Util(rootDir: File, workerCount: Int, partitionCount: Int, partitionSize: Int) extends Logging {
 
   val masterDir = new File(rootDir, "master")
@@ -25,7 +27,5 @@ class Util(rootDir: File, workerCount: Int, partitionCount: Int, partitionSize: 
     resultType.parseFrom(response)
   }
   
-  def processSample(data: ByteString) = {
-    Common.Data.sort(data)
-  }
+  def processSample(data: ParSeq[ByteString]) = ???
 }
