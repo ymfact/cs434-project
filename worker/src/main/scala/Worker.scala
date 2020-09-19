@@ -1,7 +1,7 @@
 
 import bytes.Bytes
 import Common.Protocol
-import Common.Protocol.{Classify, Clean, Collect, Gensort, Sample}
+import Common.Protocol.{Classify, Clean, Collect, FinalSort, Gensort, Sample}
 import Worker.{Context, Endpoint}
 import cask.MainRoutes
 import com.google.protobuf.empty.Empty
@@ -38,6 +38,11 @@ class Worker(ctx: Context) extends MainRoutes with Logging {
   def collect(data: Bytes): Empty = {
     logger.info(s"collect received: ${data.bytes.size()}")
     ctx.collect(data.bytes)
+  }
+
+  @Endpoint(FinalSort)
+  def finalSort(data: Empty): Empty = {
+    ctx.finalSort
   }
 
   def close() {

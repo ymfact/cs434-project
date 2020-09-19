@@ -2,14 +2,16 @@ package Worker
 
 import java.io.File
 
-import Common.Const.BYTE_COUNT_IN_KEY
+import Common.Const.{BYTE_COUNT_IN_KEY, SAMPLE_COUNT}
+import Common.RecordTypes.MutableRecordArray
 import Common.{Data, Protocol}
 import Worker.Types.WorkerIndexType
 import cask.Request
 import com.google.protobuf.ByteString
+import org.apache.logging.log4j.scala.Logging
 import scalapb.GeneratedMessage
 
-class Context(rootDir: File, val workerIndex: WorkerIndexType, workerCount: Int, partitionCount: Int, partitionSize: Int, isBinary: Boolean) {
+class Context(rootDir: File, val workerIndex: WorkerIndexType, workerCount: Int, partitionCount: Int, partitionSize: Int, isBinary: Boolean) extends Logging {
 
   private val util = new Util(rootDir, workerIndex, workerCount, partitionCount, partitionSize, isBinary)
 
@@ -38,5 +40,19 @@ class Context(rootDir: File, val workerIndex: WorkerIndexType, workerCount: Int,
   def collect(data: ByteString): Unit = {
     val path = new File(workerDir, s"${util.getNextNewFileName}").toPath
     Data.write(path, data)
+  }
+
+  def finalSort(): Unit ={
+    sortEachPartition
+  }
+
+  private def sortEachPartition(): Unit ={
+    (0 until partitionCount * workerCount).foreach({ partitionIndex =>
+      logger.info(s"sorting partition $partitionIndex")
+      val path = new File(workerDir, s"$partitionIndex").toPath
+      val data = Data.readAll(path)
+      val sorted = Data.inplaceSort(MutableRecordArray.from(data))
+      Data.write(path, sorted.toByteString)
+    })
   }
 }

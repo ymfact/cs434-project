@@ -19,7 +19,7 @@ import scala.sys.process.Process
 class Util(rootDir: File, workerIndex: WorkerIndexType, workerCount: Int, partitionCount: Int, partitionSize: Int, isBinary: Boolean) extends Logging {
 
   val workerDir = new File(rootDir, s"$workerIndex")
-  val maxSampleCount = (partitionSize / 4)
+  val maxSampleCount = partitionSize / 4
 
   private val nextNewFileName: AtomicInteger = new AtomicInteger(partitionCount)
   def getNextNewFileName: Int = nextNewFileName.getAndIncrement

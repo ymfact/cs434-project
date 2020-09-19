@@ -37,4 +37,9 @@ object Protocol {
     val ResultType: Empty.type = Empty
     val endpoint: String = "collect"
   }
+  object FinalSort extends Protocol[Empty, Empty]{
+    val OrderType: Empty.type = Empty
+    val ResultType: Empty.type = Empty
+    val endpoint: String = "final_sort"
+  }
 }
