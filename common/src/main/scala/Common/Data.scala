@@ -26,13 +26,13 @@ object Data extends Logging {
 
   def write(path: Path, data: ByteString): Unit = data.writeTo(outputStream(path))
 
-  def sortFromSorteds(arrays: collection.Seq[RecordStream]): Iterator[Record] = {
-    new Iterator[Record]{
-      private val queue = mutable.SortedMap[Record, Iterator[Record]]()
+  def sortFromSorteds(arrays: collection.Seq[RecordStream]): Iterator[RecordFromByteArray] = {
+    new Iterator[RecordFromByteArray]{
+      private val queue = mutable.SortedMap[RecordFromByteArray, Iterator[RecordFromByteArray]]()
       private var iter = queue.addAll(arrays.map(_.iterator).map(iter => iter.next() -> iter)).iterator
 
       override def hasNext: Boolean = iter.hasNext
-      override def next(): Record = {
+      override def next(): RecordFromByteArray = {
         val (record, arrayIter) = iter.next()
         queue.remove(record)
         if(arrayIter.hasNext)

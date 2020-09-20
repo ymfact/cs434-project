@@ -6,12 +6,8 @@ import Common.Const.{BYTE_COUNT_IN_KEY, BYTE_COUNT_IN_RECORD}
 import com.google.protobuf.ByteString
 
 import scala.annotation.tailrec
-import scala.util.Try
 
 trait Record extends Ordered[Record]{
-
-  def getKeyByteString: ByteString
-
   def getKeyByte(keyIndex: Int): Byte
 
   override def compare(that: Record): Int = compareKey(Left(that), 0)
@@ -32,20 +28,14 @@ trait Record extends Ordered[Record]{
       else
         compared
     }
-
-  def toByteString: ByteString
-
-  def toByteArray: Array[Byte]
-
-  override def toString = new String(toByteArray)
 }
 
 object Record {
-  def from(that: Array[Byte]): Record = new RecordFromByteArray(that)
+  def from(that: Array[Byte]): RecordFromByteArray = new RecordFromByteArray(that)
 
-  def from(that: ByteString): Record = new RecordFromByteString(that)
+  def from(that: ByteString): RecordFromByteString = new RecordFromByteString(that)
 
-  def from(stream: InputStream): Record ={
+  def from(stream: InputStream): RecordFromByteArray ={
     try{
       Record.from(Data.readSome(stream, BYTE_COUNT_IN_RECORD))
     }catch{

@@ -28,7 +28,7 @@ class Util(rootDir: File, workerIndex: WorkerIndexType, workerCount: Int, partit
       val command = gensortCommand(partitionIndex)
       logger.info(command)
       workerDir.mkdirs()
-      val result = Process(command, workerDir).!!
+      Process(command, workerDir).!!
     }
   }
 
@@ -63,7 +63,7 @@ class Util(rootDir: File, workerIndex: WorkerIndexType, workerCount: Int, partit
       val records = RecordStream.from(stream)
       val classified = records.groupBy(record => getOwnerOfRecord(record, keyRanges))
       for( (workerIndex, records) <- classified.par) {
-        val byteString = records.map(_.toByteString).fold(ByteString.EMPTY)(_ concat _)
+        val byteString = records.map(_.toByteArray).map(ByteString.copyFrom).fold(ByteString.EMPTY)(_ concat _)
         if(workerIndex == this.workerIndex){
           val path = new File(workerDir, s"temp$partitionIndex").toPath
           Data.write(path, byteString)
