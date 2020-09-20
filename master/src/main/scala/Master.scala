@@ -24,6 +24,8 @@ class Master(ctx: Context) extends Logging {
 
   val sampleRanges = ctx.processSample(samples).fold(ByteString.EMPTY)(_ concat _)
 
+  logger.info(s"sample ranges: ${sampleRanges.size}")
+
   ctx.broadcast.map{ worker =>
     worker.send(Classify, new Bytes(bytes=sampleRanges))
   }.seq

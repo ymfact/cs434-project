@@ -4,9 +4,8 @@ import java.io.File
 import java.util.concurrent.atomic.AtomicInteger
 
 import Common.Const.{BYTE_COUNT_IN_RECORD, SAMPLE_COUNT}
-import Common.Data
+import Common.{Data, Record, RecordArray, RecordStream}
 import Common.Protocol.Collect
-import Common.RecordTypes.{ImmutableRecordArray, MutableRecordArray, RecordPtr}
 import Common.SimulationUtils.lookForProgramInPath
 import Worker.Types.WorkerIndexType
 import bytes.Bytes
@@ -42,14 +41,15 @@ class Util(rootDir: File, workerIndex: WorkerIndexType, workerCount: Int, partit
 
   def sample(): ByteString = {
     val path = new File(workerDir, "0").toPath
-    val data = Data.readSome(path, SAMPLE_COUNT * BYTE_COUNT_IN_RECORD)
-    val sorted = Data.inplaceSort(MutableRecordArray.from(data))
+    val stream = Data.inputStream(path)
+    val data = Data.readSome(stream, SAMPLE_COUNT * BYTE_COUNT_IN_RECORD)
+    val sorted = Data.inplaceSort(RecordArray.from(data))
     sorted.toByteString
   }
 
   type KeyType = ByteString
 
-  private def getOwnerOfRecord(recordPtr: RecordPtr, keyRanges: Seq[KeyType]): Int ={
+  private def getOwnerOfRecord(recordPtr: Record, keyRanges: Seq[KeyType]): Int ={
     for ( (key, index) <- keyRanges.zipWithIndex)
       if(recordPtr.compare(key) < 0)
         return index
@@ -58,7 +58,9 @@ class Util(rootDir: File, workerIndex: WorkerIndexType, workerCount: Int, partit
 
   def classifyThenSendOrSave(keyRanges: Seq[KeyType]): Unit = {
     (0 until partitionCount).foreach { partitionIndex =>
-      val records = ImmutableRecordArray.from(Data.readAll(new File(workerDir, s"$partitionIndex").toPath))
+      val path = new File(workerDir, s"$partitionIndex").toPath
+      val stream = Data.inputStream(path)
+      val records = RecordStream.from(stream)
       val classified = records.groupBy(record => getOwnerOfRecord(record, keyRanges))
       for( (workerIndex, records) <- classified.par) {
         val byteString = records.map(_.toByteString).fold(ByteString.EMPTY)(_ concat _)

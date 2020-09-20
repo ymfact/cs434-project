@@ -1,36 +1,38 @@
 package Common
 
-import java.io.{InputStream, OutputStream}
+import java.io.{EOFException, InputStream, OutputStream}
 import java.nio.file.{Files, Path}
 
-import Common.RecordTypes.{MutableRecordArray, RecordArray, RecordPtr}
+import Common.RecordStream.RecordStream
 import com.google.protobuf.ByteString
 import org.apache.logging.log4j.scala.Logging
 
 import scala.collection.mutable
-import scala.util.Using
 
 object Data extends Logging {
 
-  private def inputStream(path: Path): InputStream = Files.newInputStream(path)
-  private def outputStream(path: Path): OutputStream = Files.newOutputStream(path)
+  def inputStream(path: Path): InputStream = Files.newInputStream(path)
+  def outputStream(path: Path): OutputStream = Files.newOutputStream(path)
 
   def readAll(path: Path): ByteString = ByteString.readFrom(inputStream(path))
 
-  def readSome(path: Path, len: Int): Array[Byte] = {
-    val stream = inputStream(path)
-    LazyList.continually(stream.read).map(_.toByte).take(len).toArray
+  def readSome(stream: InputStream, len: Int): Array[Byte] ={
+    val buffer = Array.ofDim[Byte](len)
+    if(len == stream.read(buffer, 0, len))
+      buffer
+    else
+      throw new EOFException
   }
 
   def write(path: Path, data: ByteString): Unit = data.writeTo(outputStream(path))
 
-  def sortFromSorteds(arrays: collection.Seq[RecordArray[RecordPtr]]): Iterator[RecordPtr] = {
-    new Iterator[RecordPtr]{
-      private val queue = mutable.SortedMap[RecordPtr, Iterator[RecordPtr]]()
+  def sortFromSorteds(arrays: collection.Seq[RecordStream]): Iterator[Record] = {
+    new Iterator[Record]{
+      private val queue = mutable.SortedMap[Record, Iterator[Record]]()
       private var iter = queue.addAll(arrays.map(_.iterator).map(iter => iter.next() -> iter)).iterator
 
       override def hasNext: Boolean = iter.hasNext
-      override def next(): RecordPtr = {
+      override def next(): Record = {
         val (record, arrayIter) = iter.next()
         queue.remove(record)
         if(arrayIter.hasNext)
@@ -41,12 +43,12 @@ object Data extends Logging {
     }
   }
 
-  def inplaceSort(data: MutableRecordArray): MutableRecordArray = {
+  def inplaceSort(data: RecordArray): RecordArray = {
     inplaceSort(data, 0, data.length - 1)
     data
   }
 
-  private def merge(arr: MutableRecordArray, beginLeft: Int, lastLeft: Int, lastRight: Int): Unit = {
+  private def merge(arr: RecordArray, beginLeft: Int, lastLeft: Int, lastRight: Int): Unit = {
     var currentLastLeft = lastLeft
     var currentLeft = beginLeft
     var currentRight = currentLastLeft + 1
@@ -55,7 +57,7 @@ object Data extends Logging {
       if (arr(currentLeft) <= arr(currentRight))
         currentLeft += 1
       else {
-        val value = arr(currentRight).getByteArray
+        val value = arr(currentRight).toByteArray
         var index = currentRight
         while (index != currentLeft) {
           arr(index) = arr(index - 1)
@@ -68,7 +70,7 @@ object Data extends Logging {
       }
   }
 
-  private def inplaceSort(arr: MutableRecordArray, begin: Int, last: Int): Unit = {
+  private def inplaceSort(arr: RecordArray, begin: Int, last: Int): Unit = {
     if (begin < last) {
       val mid = begin + (last - begin) / 2
       inplaceSort(arr, begin, mid)
