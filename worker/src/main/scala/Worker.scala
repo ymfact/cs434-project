@@ -42,7 +42,7 @@ class Worker(ctx: Context) extends MainRoutes with Logging {
 
   @Endpoint(FinalSort)
   def finalSort(data: Empty): Empty = {
-    ctx.finalSort
+    ctx.finalSort()
   }
 
   def close() {

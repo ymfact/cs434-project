@@ -43,8 +43,8 @@ class Context(rootDir: File, val workerIndex: WorkerIndexType, workerCount: Int,
   }
 
   def finalSort(): Unit ={
-    sortEachPartition
-    mergeAllPartitions
+    sortEachPartition()
+    mergeAllPartitions()
     cleanTemp(workerDir)
   }
 

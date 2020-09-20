@@ -12,17 +12,17 @@ import scalaj.http.Http
 import scala.annotation.tailrec
 
 object Util extends Logging {
-  def clean(dir: File){
+  def clean(dir: File) {
     logger.info("clean")
     FileUtils.deleteRecursive(dir.toPath)
   }
 
-  def cleanTemp(dir: File): Unit ={
+  def cleanTemp(dir: File): Unit = {
     logger.info(s"clean temp*")
     dir.listFiles.filter(_.getName.startsWith("temp")).foreach(_.delete)
   }
 
-  implicit def unitToEmpty (unit: Unit) = new Empty
+  implicit def unitToEmpty(unit: Unit) = new Empty
 
   def send[OrderMsgType <: GeneratedMessage, ResultMsgType <: GeneratedMessage]
   (workerIndex: Int, protocol: Protocol[OrderMsgType, ResultMsgType], msg: GeneratedMessage = new Empty): ResultMsgType =
