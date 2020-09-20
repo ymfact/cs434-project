@@ -28,5 +28,10 @@ object Files extends Logging {
 
   def write(path: Path, data: ByteString): Unit = outputStream(path)(data.writeTo)
 
-  def write(path: Path, records: Iterable[RecordFromByteArray]): Unit = write(path, recordsToByteString(records))
+  def write(path: Path, records: Iterable[RecordFromByteArray]): Unit = {
+    outputStream(path) { stream =>
+      for (record <- records)
+        stream.write(record.toByteArray)
+    }
+  }
 }
