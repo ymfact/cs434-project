@@ -1,6 +1,6 @@
 package Common
 
-import java.io.{EOFException, InputStream}
+import java.io.{DataInputStream, EOFException, InputStream}
 
 import Common.Const.{BYTE_COUNT_IN_KEY, BYTE_COUNT_IN_RECORD}
 import com.google.protobuf.ByteString
@@ -35,11 +35,5 @@ object Record {
 
   def from(that: ByteString): RecordFromByteString = new RecordFromByteString(that)
 
-  def from(stream: InputStream): RecordFromByteArray ={
-    try{
-      Record.from(Data.readSome(stream, BYTE_COUNT_IN_RECORD))
-    }catch{
-      case _: EOFException => null
-    }
-  }
+  def from(stream: DataInputStream): RecordFromByteArray = Record.from(Data.readSome(stream, BYTE_COUNT_IN_RECORD))
 }

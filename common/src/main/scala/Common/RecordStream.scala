@@ -1,10 +1,16 @@
 package Common
 
-import java.io.InputStream
+import java.io.{DataInputStream, EOFException}
 
 object RecordStream {
   type RecordStream = LazyList[RecordFromByteArray]
-  def from(stream: InputStream): RecordStream = {
-    LazyList.continually(Record.from(stream)).takeWhile(_ != null)
+  def from(stream: DataInputStream): RecordStream = {
+    LazyList.continually({
+      try {
+        Some(Record.from(stream))
+      } catch {
+        case _: EOFException => None
+      }
+    }).takeWhile(_.isDefined).map(_.get)
   }
 }

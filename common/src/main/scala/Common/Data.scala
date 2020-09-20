@@ -1,9 +1,11 @@
 package Common
 
-import java.io.{EOFException, InputStream, OutputStream}
+import java.io.{DataInputStream, DataOutputStream}
 import java.nio.file.{Files, Path}
 
+import Common.Const.BYTE_COUNT_IN_RECORD
 import Common.RecordStream.RecordStream
+import Common.Util.log2
 import com.google.protobuf.ByteString
 import org.apache.logging.log4j.scala.Logging
 
@@ -11,71 +13,108 @@ import scala.collection.mutable
 
 object Data extends Logging {
 
-  def inputStream(path: Path): InputStream = Files.newInputStream(path)
-  def outputStream(path: Path): OutputStream = Files.newOutputStream(path)
+  def inputStreamShouldBeClosed(path: Path) = new DataInputStream(Files.newInputStream(path))
+  def outputStreamShouldBeClosed(path: Path) = new DataOutputStream(Files.newOutputStream(path))
 
-  def readAll(path: Path): ByteString = ByteString.readFrom(inputStream(path))
-
-  def readSome(stream: InputStream, len: Int): Array[Byte] ={
-    val buffer = Array.ofDim[Byte](len)
-    if(len == stream.read(buffer, 0, len))
-      buffer
-    else
-      throw new EOFException
-  }
-
-  def write(path: Path, data: ByteString): Unit = data.writeTo(outputStream(path))
-
-  def sortFromSorteds(arrays: collection.Seq[RecordStream]): Iterator[RecordFromByteArray] = {
-    new Iterator[RecordFromByteArray]{
-      private val queue = mutable.SortedMap[RecordFromByteArray, Iterator[RecordFromByteArray]]()
-      private var iter = queue.addAll(arrays.map(_.iterator).map(iter => iter.next() -> iter)).iterator
-
-      override def hasNext: Boolean = iter.hasNext
-      override def next(): RecordFromByteArray = {
-        val (record, arrayIter) = iter.next()
-        queue.remove(record)
-        if(arrayIter.hasNext)
-          queue.addOne(arrayIter.next() -> arrayIter)
-        iter = queue.iterator
-        record
-      }
+  def inputStream[T](path: Path)(f: DataInputStream => T): T = {
+    val stream = inputStreamShouldBeClosed(path)
+    try {
+      f(stream)
+    } finally {
+      stream.close()
     }
   }
 
-  def inplaceSort(data: RecordArray): RecordArray = {
-    inplaceSort(data, 0, data.length - 1)
-    data
+  def outputStream[T](path: Path)(f: DataOutputStream => T): T = {
+    val stream = outputStreamShouldBeClosed(path)
+    try {
+      f(stream)
+    } finally {
+      stream.close()
+    }
   }
 
-  private def merge(arr: RecordArray, beginLeft: Int, lastLeft: Int, lastRight: Int): Unit = {
-    var currentLastLeft = lastLeft
-    var currentLeft = beginLeft
-    var currentRight = currentLastLeft + 1
-    if (arr(currentLastLeft) <= arr(currentRight)) return
-    while (currentLeft <= currentLastLeft && currentRight <= lastRight)
-      if (arr(currentLeft) <= arr(currentRight))
-        currentLeft += 1
-      else {
-        val value = arr(currentRight).toByteArray
-        var index = currentRight
-        while (index != currentLeft) {
-          arr(index) = arr(index - 1)
-          index -= 1
-        }
-        arr(currentLeft) = value
-        currentLeft += 1
-        currentLastLeft += 1
-        currentRight += 1
+  def readSome(stream: DataInputStream, len: Int): Array[Byte] ={
+    val buffer = Array.ofDim[Byte](len)
+    stream.readFully(buffer)
+    buffer
+  }
+
+  def readAll(path: Path): Array[Byte] = Files.readAllBytes(path)
+
+  def write(path: Path, data: ByteString): Unit = outputStream(path)(data.writeTo)
+
+  def write(path: Path, records: Iterable[RecordFromByteArray]): Unit = write(path, recordsToByteString(records))
+
+  def recordsToByteString(records: Iterable[RecordFromByteArray]): ByteString =
+    records.map(_.toByteArray).map(ByteString.copyFrom).fold(ByteString.EMPTY)(_ concat _)
+
+
+  def sortFromSorteds(streams: collection.Seq[RecordStream]): Iterator[RecordFromByteArray] = new Iterator[RecordFromByteArray] {
+    private val queue = mutable.SortedMap[RecordFromByteArray, Iterator[RecordFromByteArray]]()
+    queue.addAll(streams.map(_.iterator).map(iter => iter.next() -> iter))
+    private var iter = queue.iterator
+
+    override def hasNext: Boolean = iter.hasNext
+
+    override def next(): RecordFromByteArray = {
+      val (record, arrayIter) = iter.next()
+      queue.remove(record)
+      if (arrayIter.hasNext)
+        queue.addOne(arrayIter.next() -> arrayIter)
+      iter = queue.iterator
+      record
+    }
+  }
+
+  def mergeSort(records: RecordArray): RecordArray = {
+    val len = records.length
+    val extraBuffer = mutable.ArrayBuffer.fill[Byte](len * BYTE_COUNT_IN_RECORD)(0)
+    val extra = new RecordArray(extraBuffer)
+    val stepCount = log2(len).ceil.toInt
+
+    var srcDest = (records, extra)
+    def src: RecordArray = srcDest._1
+    def dest: RecordArray = srcDest._2
+    for (step <- 0 until stepCount) {
+      mergeSort(src, dest, step)
+      srcDest = srcDest.swap
+    }
+    src
+  }
+
+  private def mergeSort(src: RecordArray, dest: RecordArray, step: Int): Unit = {
+    val chunkSize = 1 << step
+    (0 until src.length by 2 * chunkSize).foreach(begin => {
+      val mid = src.length min (begin + chunkSize)
+      val end = src.length min (begin + chunkSize + chunkSize)
+      mergeSortConquer(src, dest, begin, mid, end)
+    })
+  }
+
+  private def mergeSortConquer(src: RecordArray, dest: RecordArray, begin: Int, mid: Int, end: Int): Unit = {
+    var leftCursor = begin
+    var rightCursor = mid
+    val leftEnd = mid
+    val rightEnd = end
+    var extraCursor = begin
+    while (true) {
+      if (leftCursor >= leftEnd) {
+        dest.data.patchInPlace(extraCursor * BYTE_COUNT_IN_RECORD, src.data.slice(rightCursor * BYTE_COUNT_IN_RECORD, rightEnd * BYTE_COUNT_IN_RECORD), (rightEnd - rightCursor) * BYTE_COUNT_IN_RECORD)
+        return
       }
-  }
-
-  private def inplaceSort(arr: RecordArray, begin: Int, last: Int): Unit = {
-    if (begin < last) {
-      val mid = begin + (last - begin) / 2
-      inplaceSort(arr, begin, mid)
-      inplaceSort(arr, mid + 1, last)
-      merge(arr, begin, mid, last)
+      else if (rightCursor >= rightEnd) {
+        dest.data.patchInPlace(extraCursor * BYTE_COUNT_IN_RECORD, src.data.slice(leftCursor * BYTE_COUNT_IN_RECORD, leftEnd * BYTE_COUNT_IN_RECORD), (leftEnd - leftCursor) * BYTE_COUNT_IN_RECORD)
+        return
+      }
+      else if (src(leftCursor) < src(rightCursor)) {
+        dest(extraCursor) = src(leftCursor)
+        leftCursor += 1
+      } else {
+        dest(extraCursor) = src(rightCursor)
+        rightCursor += 1
+      }
+      extraCursor += 1
     }
   }
 }

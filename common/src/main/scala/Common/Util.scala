@@ -40,4 +40,6 @@ object Util extends Logging {
       .body
     resultType.parseFrom(response)
   }
+
+  def log2(x: Double): Double = math.log(x) / math.log(2)
 }

@@ -53,23 +53,24 @@ class Context(rootDir: File, val workerIndex: WorkerIndexType, workerCount: Int,
       logger.info(s"sorting partition $partitionIndex")
       val path = new File(workerDir, s"temp$partitionIndex").toPath
       val data = Data.readAll(path)
-      val sorted = Data.inplaceSort(RecordArray.from(data))
+      val sorted = Data.mergeSort(RecordArray.from(data))
       Data.write(path, sorted.toByteString)
     })
   }
 
   private def mergeAllPartitions(): Unit ={
-    val partitions = (0 until partitionCount * workerCount).map({ partitionIndex =>
+    val streams = (0 until partitionCount * workerCount).map({ partitionIndex =>
       val path = new File(workerDir, s"temp$partitionIndex").toPath
-      val stream = Data.inputStream(path)
-      RecordStream.from(stream)
+      Data.inputStreamShouldBeClosed(path)
     })
     logger.info(s"merging all partitions")
+    val partitions = streams.map(RecordStream.from)
     val sorted = Data.sortFromSorteds(partitions)
     for ((sorted, partitionIndex) <- sorted.grouped(partitionSize).zipWithIndex){
       val path = new File(workerDir, s"$partitionIndex").toPath
-      val data = sorted.map(_.toByteArray).map(ByteString.copyFrom(_)).fold(ByteString.EMPTY)(_ concat _)
+      val data = sorted.map(_.toByteArray).map(ByteString.copyFrom).fold(ByteString.EMPTY)(_ concat _)
       Data.write(path, data)
     }
+    streams.foreach(_.close())
   }
 }

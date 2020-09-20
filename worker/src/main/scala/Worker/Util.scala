@@ -4,9 +4,9 @@ import java.io.File
 import java.util.concurrent.atomic.AtomicInteger
 
 import Common.Const.{BYTE_COUNT_IN_RECORD, SAMPLE_COUNT}
-import Common.{Data, Record, RecordArray, RecordStream}
 import Common.Protocol.Collect
 import Common.SimulationUtils.lookForProgramInPath
+import Common.{Data, Record, RecordArray, RecordStream}
 import Worker.Types.WorkerIndexType
 import bytes.Bytes
 import com.google.protobuf.ByteString
@@ -41,9 +41,11 @@ class Util(rootDir: File, workerIndex: WorkerIndexType, workerCount: Int, partit
 
   def sample(): ByteString = {
     val path = new File(workerDir, "0").toPath
-    val stream = Data.inputStream(path)
-    val data = Data.readSome(stream, SAMPLE_COUNT * BYTE_COUNT_IN_RECORD)
-    val sorted = Data.inplaceSort(RecordArray.from(data))
+    val recordArray = Data.inputStream(path){ stream =>
+        val byteArray = Data.readSome(stream, SAMPLE_COUNT * BYTE_COUNT_IN_RECORD)
+        RecordArray.from(byteArray)
+      }
+    val sorted = Data.mergeSort(recordArray)
     sorted.toByteString
   }
 
@@ -59,16 +61,16 @@ class Util(rootDir: File, workerIndex: WorkerIndexType, workerCount: Int, partit
   def classifyThenSendOrSave(keyRanges: Seq[KeyType]): Unit = {
     (0 until partitionCount).foreach { partitionIndex =>
       val path = new File(workerDir, s"$partitionIndex").toPath
-      val stream = Data.inputStream(path)
-      val records = RecordStream.from(stream)
-      val classified = records.groupBy(record => getOwnerOfRecord(record, keyRanges))
-      for( (workerIndex, records) <- classified.par) {
-        val byteString = records.map(_.toByteArray).map(ByteString.copyFrom).fold(ByteString.EMPTY)(_ concat _)
-        if(workerIndex == this.workerIndex){
-          val path = new File(workerDir, s"temp$partitionIndex").toPath
-          Data.write(path, byteString)
-        }else{
-          Common.Util.send(workerIndex, Collect, new Bytes(byteString))
+      Data.inputStream(path){ stream =>
+        val records = RecordStream.from(stream)
+        val classified = records.groupBy(record => getOwnerOfRecord(record, keyRanges))
+        for( (workerIndex, records) <- classified.par) {
+          if(workerIndex == this.workerIndex){
+            val path = new File(workerDir, s"temp$partitionIndex").toPath
+            Data.write(path, records)
+          }else{
+            Common.Util.send(workerIndex, Collect, new Bytes(Data.recordsToByteString(records)))
+          }
         }
       }
     }

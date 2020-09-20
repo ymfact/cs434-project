@@ -1,18 +1,19 @@
 package Common
 
-import Common.Const.{BYTE_COUNT_IN_KEY, BYTE_COUNT_IN_RECORD, BYTE_OFFSET_OF_KEY}
+import Common.Const.BYTE_COUNT_IN_RECORD
 import com.google.protobuf.ByteString
 
 import scala.collection.mutable
+import scala.jdk.CollectionConverters.IteratorHasAsScala
 
-class RecordArray(arr: Array[Byte]) extends mutable.Seq[RecordArrayPtr] {
-  override def update(idx: Int, elem: RecordArrayPtr): Unit = update(idx, elem.toByteArray)
+class RecordArray (buffer: mutable.Buffer[Byte]) extends mutable.Seq[RecordArrayPtr] {
+  override def update(idx: Int, elem: RecordArrayPtr): Unit = update(idx, elem.raw)
 
-  def update(idx: Int, elem: Array[Byte]): Unit = elem.copyToArray(arr, idx * BYTE_COUNT_IN_RECORD, BYTE_COUNT_IN_RECORD)
+  private def update(idx: Int, elem: IterableOnce[Byte]): Unit = buffer.patchInPlace(idx * BYTE_COUNT_IN_RECORD, elem, BYTE_COUNT_IN_RECORD)
 
-  override def apply(i: Int): RecordArrayPtr = new RecordArrayPtr(arr, i)
+  override def apply(i: Int): RecordArrayPtr = new RecordArrayPtr(buffer, i)
 
-  override def length: Int = arr.length / BYTE_COUNT_IN_RECORD
+  override def length: Int = buffer.length / BYTE_COUNT_IN_RECORD
 
   class Iterator extends scala.Iterator[RecordArrayPtr] {
     var currentIndex: Int = 0
@@ -20,7 +21,7 @@ class RecordArray(arr: Array[Byte]) extends mutable.Seq[RecordArrayPtr] {
     override def hasNext: Boolean = currentIndex < RecordArray.this.length
 
     override def next(): RecordArrayPtr = {
-      val next = new RecordArrayPtr(arr, currentIndex)
+      val next = new RecordArrayPtr(buffer, currentIndex)
       currentIndex += 1
       next
     }
@@ -28,13 +29,29 @@ class RecordArray(arr: Array[Byte]) extends mutable.Seq[RecordArrayPtr] {
 
   override def iterator: scala.Iterator[RecordArrayPtr] = new Iterator
 
-  def toByteArray: Array[Byte] = arr
+  def toByteString: ByteString = {
+    val iter = buffer.iterator
+    ByteString.readFrom(() =>
+      if (iter.hasNext)
+        iter.next()
+      else
+        -1
+    )
+  }
 
-  def toByteString: ByteString = ByteString.copyFrom(arr)
+  def data: mutable.Buffer[Byte] = buffer
 }
 
 object RecordArray {
-  implicit def from(byteString: ByteString): RecordArray = new RecordArray(byteString.toByteArray)
+  def from(byteString: ByteString): RecordArray = from(byteString.iterator.asScala.map(_.toByte))
 
-  implicit def from(array: Array[Byte]): RecordArray = new RecordArray(array)
+  def from(array: Array[Byte]): RecordArray = from(array.iterator)
+
+  private def from(iter: Iterator[Byte]): RecordArray = {
+    val buffer = mutable.ArrayBuffer.fill[Byte](iter.length)(0)
+    buffer.patchInPlace(0, new IterableOnce[Byte]{
+      override def iterator: Iterator[Byte] = iter
+    }, iter.length)
+    new RecordArray(buffer)
+  }
 }

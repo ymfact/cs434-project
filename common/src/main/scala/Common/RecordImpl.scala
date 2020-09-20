@@ -3,10 +3,12 @@ package Common
 import Common.Const.{BYTE_COUNT_IN_KEY, BYTE_COUNT_IN_RECORD, BYTE_OFFSET_OF_KEY}
 import com.google.protobuf.ByteString
 
-class RecordArrayPtr(val arr: Array[Byte], index: Int) extends Record {
-  override def getKeyByte(keyIndex: Int): Byte = arr(index * BYTE_COUNT_IN_RECORD + BYTE_OFFSET_OF_KEY + keyIndex)
+import scala.collection.mutable
 
-  def toByteArray: scala.Array[Byte] = arr.slice(index * BYTE_COUNT_IN_RECORD, (index + 1) * BYTE_COUNT_IN_RECORD)
+class RecordArrayPtr (val buffer: mutable.Buffer[Byte], index: Int) extends Record {
+  override def getKeyByte(keyIndex: Int): Byte = buffer(index * BYTE_COUNT_IN_RECORD + BYTE_OFFSET_OF_KEY + keyIndex)
+
+  def raw: mutable.Buffer[Byte] = buffer.slice(index * BYTE_COUNT_IN_RECORD, (index + 1) * BYTE_COUNT_IN_RECORD)
 }
 
 class RecordFromByteString(byteString: ByteString) extends Record {
