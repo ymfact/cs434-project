@@ -4,7 +4,7 @@ import java.io.File
 
 import Common.Const.BYTE_COUNT_IN_KEY
 import Common.Util.cleanTemp
-import Common.{Data, Protocol, RecordArray, RecordStream}
+import Common.{Files, Protocol, RecordArray, RecordStream, Sorts}
 import Worker.Types.WorkerIndexType
 import cask.Request
 import com.google.protobuf.ByteString
@@ -39,7 +39,7 @@ class Context(rootDir: File, val workerIndex: WorkerIndexType, workerCount: Int,
 
   def collect(data: ByteString): Unit = {
     val path = new File(workerDir, s"temp${util.getNextNewFileName}").toPath
-    Data.write(path, data)
+    Files.write(path, data)
   }
 
   def finalSort(): Unit ={
@@ -52,24 +52,24 @@ class Context(rootDir: File, val workerIndex: WorkerIndexType, workerCount: Int,
     (0 until partitionCount * workerCount).foreach({ partitionIndex =>
       logger.info(s"sorting partition $partitionIndex")
       val path = new File(workerDir, s"temp$partitionIndex").toPath
-      val data = Data.readAll(path)
-      val sorted = Data.mergeSort(RecordArray.from(data))
-      Data.write(path, sorted.toByteString)
+      val data = Files.readAll(path)
+      val sorted = Sorts.mergeSort(RecordArray.from(data))
+      Files.write(path, sorted.toByteString)
     })
   }
 
   private def mergeAllPartitions(): Unit ={
     val streams = (0 until partitionCount * workerCount).map({ partitionIndex =>
       val path = new File(workerDir, s"temp$partitionIndex").toPath
-      Data.inputStreamShouldBeClosed(path)
+      Files.inputStreamShouldBeClosed(path)
     })
     logger.info(s"merging all partitions")
     val partitions = streams.map(RecordStream.from)
-    val sorted = Data.sortFromSorteds(partitions)
+    val sorted = Sorts.sortFromSorteds(partitions)
     for ((sorted, partitionIndex) <- sorted.grouped(partitionSize).zipWithIndex){
       val path = new File(workerDir, s"$partitionIndex").toPath
       val data = sorted.map(_.toByteArray).map(ByteString.copyFrom).fold(ByteString.EMPTY)(_ concat _)
-      Data.write(path, data)
+      Files.write(path, data)
     }
     streams.foreach(_.close())
   }

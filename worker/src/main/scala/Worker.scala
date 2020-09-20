@@ -1,12 +1,11 @@
 
-import bytes.Bytes
-import Common.Protocol
-import Common.Protocol.{Classify, Clean, Collect, FinalSort, Gensort, Sample}
+import Common.Protocol._
+import Common.Util.unitToEmpty
 import Worker.{Context, Endpoint}
+import bytes.Bytes
 import cask.MainRoutes
 import com.google.protobuf.empty.Empty
 import org.apache.logging.log4j.scala.Logging
-import Common.Util.unitToEmpty
 
 class Worker(ctx: Context) extends MainRoutes with Logging {
 

@@ -35,5 +35,5 @@ object Record {
 
   def from(that: ByteString): RecordFromByteString = new RecordFromByteString(that)
 
-  def from(stream: DataInputStream): RecordFromByteArray = Record.from(Data.readSome(stream, BYTE_COUNT_IN_RECORD))
+  def from(stream: DataInputStream): RecordFromByteArray = Record.from(Files.readSome(stream, BYTE_COUNT_IN_RECORD))
 }

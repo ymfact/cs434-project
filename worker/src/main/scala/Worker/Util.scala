@@ -5,8 +5,9 @@ import java.util.concurrent.atomic.AtomicInteger
 
 import Common.Const.{BYTE_COUNT_IN_RECORD, SAMPLE_COUNT}
 import Common.Protocol.Collect
+import Common.RecordStream.recordsToByteString
 import Common.SimulationUtils.lookForProgramInPath
-import Common.{Data, Record, RecordArray, RecordStream}
+import Common.{Files, Record, RecordArray, RecordStream, Sorts}
 import Worker.Types.WorkerIndexType
 import bytes.Bytes
 import com.google.protobuf.ByteString
@@ -41,11 +42,11 @@ class Util(rootDir: File, workerIndex: WorkerIndexType, workerCount: Int, partit
 
   def sample(): ByteString = {
     val path = new File(workerDir, "0").toPath
-    val recordArray = Data.inputStream(path){ stream =>
-        val byteArray = Data.readSome(stream, SAMPLE_COUNT * BYTE_COUNT_IN_RECORD)
+    val recordArray = Files.inputStream(path){ stream =>
+        val byteArray = Files.readSome(stream, SAMPLE_COUNT * BYTE_COUNT_IN_RECORD)
         RecordArray.from(byteArray)
       }
-    val sorted = Data.mergeSort(recordArray)
+    val sorted = Sorts.mergeSort(recordArray)
     sorted.toByteString
   }
 
@@ -61,15 +62,15 @@ class Util(rootDir: File, workerIndex: WorkerIndexType, workerCount: Int, partit
   def classifyThenSendOrSave(keyRanges: Seq[KeyType]): Unit = {
     (0 until partitionCount).foreach { partitionIndex =>
       val path = new File(workerDir, s"$partitionIndex").toPath
-      Data.inputStream(path){ stream =>
+      Files.inputStream(path){ stream =>
         val records = RecordStream.from(stream)
         val classified = records.groupBy(record => getOwnerOfRecord(record, keyRanges))
         for( (workerIndex, records) <- classified.par) {
           if(workerIndex == this.workerIndex){
             val path = new File(workerDir, s"temp$partitionIndex").toPath
-            Data.write(path, records)
+            Files.write(path, records)
           }else{
-            Common.Util.send(workerIndex, Collect, new Bytes(Data.recordsToByteString(records)))
+            Common.Util.send(workerIndex, Collect, new Bytes(recordsToByteString(records)))
           }
         }
       }

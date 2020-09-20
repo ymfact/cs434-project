@@ -1,55 +1,12 @@
 package Common
 
-import java.io.{DataInputStream, DataOutputStream}
-import java.nio.file.{Files, Path}
-
 import Common.Const.BYTE_COUNT_IN_RECORD
 import Common.RecordStream.RecordStream
 import Common.Util.log2
-import com.google.protobuf.ByteString
-import org.apache.logging.log4j.scala.Logging
 
 import scala.collection.mutable
 
-object Data extends Logging {
-
-  def inputStreamShouldBeClosed(path: Path) = new DataInputStream(Files.newInputStream(path))
-  def outputStreamShouldBeClosed(path: Path) = new DataOutputStream(Files.newOutputStream(path))
-
-  def inputStream[T](path: Path)(f: DataInputStream => T): T = {
-    val stream = inputStreamShouldBeClosed(path)
-    try {
-      f(stream)
-    } finally {
-      stream.close()
-    }
-  }
-
-  def outputStream[T](path: Path)(f: DataOutputStream => T): T = {
-    val stream = outputStreamShouldBeClosed(path)
-    try {
-      f(stream)
-    } finally {
-      stream.close()
-    }
-  }
-
-  def readSome(stream: DataInputStream, len: Int): Array[Byte] ={
-    val buffer = Array.ofDim[Byte](len)
-    stream.readFully(buffer)
-    buffer
-  }
-
-  def readAll(path: Path): Array[Byte] = Files.readAllBytes(path)
-
-  def write(path: Path, data: ByteString): Unit = outputStream(path)(data.writeTo)
-
-  def write(path: Path, records: Iterable[RecordFromByteArray]): Unit = write(path, recordsToByteString(records))
-
-  def recordsToByteString(records: Iterable[RecordFromByteArray]): ByteString =
-    records.map(_.toByteArray).map(ByteString.copyFrom).fold(ByteString.EMPTY)(_ concat _)
-
-
+object Sorts {
   def sortFromSorteds(streams: collection.Seq[RecordStream]): Iterator[RecordFromByteArray] = new Iterator[RecordFromByteArray] {
     private val queue = mutable.SortedMap[RecordFromByteArray, Iterator[RecordFromByteArray]]()
     queue.addAll(streams.map(_.iterator).map(iter => iter.next() -> iter))
