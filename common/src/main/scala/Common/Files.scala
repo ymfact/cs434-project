@@ -8,28 +8,15 @@ import Common.RecordStream.recordsToByteString
 import com.google.protobuf.ByteString
 import org.apache.logging.log4j.scala.Logging
 
+import scala.util.{Try, Using}
+
 object Files extends Logging {
 
   def inputStreamShouldBeClosed(path: Path) = new DataInputStream(newInputStream(path))
   def outputStreamShouldBeClosed(path: Path) = new DataOutputStream(newOutputStream(path))
 
-  def inputStream[T](path: Path)(f: DataInputStream => T): T = {
-    val stream = inputStreamShouldBeClosed(path)
-    try {
-      f(stream)
-    } finally {
-      stream.close()
-    }
-  }
-
-  def outputStream[T](path: Path)(f: DataOutputStream => T): T = {
-    val stream = outputStreamShouldBeClosed(path)
-    try {
-      f(stream)
-    } finally {
-      stream.close()
-    }
-  }
+  def inputStream[T](path: Path)(f: DataInputStream => T): T = Using(inputStreamShouldBeClosed(path))(f).get
+  def outputStream[T](path: Path)(f: DataOutputStream => T): T = Using(outputStreamShouldBeClosed(path))(f).get
 
   def readSome(stream: DataInputStream, len: Int): Array[Byte] ={
     val buffer = Array.ofDim[Byte](len)
