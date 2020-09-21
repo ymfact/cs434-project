@@ -7,7 +7,7 @@ import com.google.protobuf.ByteString
 import org.apache.logging.log4j.scala.Logging
 
 import scala.collection.parallel.CollectionConverters.ImmutableIterableIsParallelizable
-import scala.collection.parallel.{ParIterable, ParSeq}
+import scala.collection.parallel.ParIterable
 
 class Context(x:NamedParam = Forced, rootDir:File, workerCount: Int, partitionCount: Int, partitionSize: Int) extends Logging {
 
@@ -18,5 +18,5 @@ class Context(x:NamedParam = Forced, rootDir:File, workerCount: Int, partitionCo
 
   def broadcast: ParIterable[Worker] = workers.par
 
-  def processSample(data: ParSeq[ByteString]) = util.processSample(data)
+  def processSample(data: Seq[ByteString]): Iterator[ByteString] = util.processSample(data)
 }

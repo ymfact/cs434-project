@@ -2,38 +2,60 @@ package Common
 
 import java.io.{DataInputStream, EOFException, InputStream}
 
-import Common.Const.{BYTE_COUNT_IN_KEY, BYTE_COUNT_IN_RECORD}
+import Common.Const.{BYTE_COUNT_IN_KEY, BYTE_COUNT_IN_RECORD, BYTE_OFFSET_OF_KEY}
 import com.google.protobuf.ByteString
 
-import scala.annotation.tailrec
+trait Record extends Ordered[Record] {
 
-trait Record extends Ordered[Record]{
-  def getKeyByte(keyIndex: Int): Byte
+  import Record._
 
-  override def compare(that: Record): Int = compareKey(Left(that), 0)
+  protected def getKeyIter: Unit => Byte
 
-  def compare(that: ByteString): Int = compareKey(Right(that), 0)
+  override def compare(that: Record): Int = {
+    val thisIter = getCompareIter(this.getKeyIter)
+    val thatIter = getCompareIter(that.getKeyIter)
+    compare(thisIter, thatIter)
+  }
 
-  @tailrec
-  private def compareKey(that: Either[Record, ByteString], checkingKeyIndex: Int): Int =
-    if (checkingKeyIndex == BYTE_COUNT_IN_KEY)
-      0
-    else {
-      val compared = getKeyByte(checkingKeyIndex).compare(that match{
-        case Left(that: Record) => that.getKeyByte(checkingKeyIndex)
-        case Right(that: ByteString) => that.byteAt(checkingKeyIndex)
-      })
-      if (compared == 0)
-        compareKey(that, checkingKeyIndex + 1)
-      else
-        compared
+  def compare(that: ByteString): Int = {
+    val thisIter = getCompareIter(this.getKeyIter)
+    val thatIter = getCompareIter(Record.getKeyIter(that))
+    compare(thisIter, thatIter)
+  }
+
+  private def compare(iterLeft: Iterator[Byte], iterRight: Iterator[Byte]): Int = {
+    for ((left, right) <- iterLeft.zip(iterRight)) {
+      val compared = left.compareTo(right)
+      if (compared != 0)
+        return compared
     }
+    0
+  }
 }
 
 object Record {
-  def from(that: Array[Byte]): RecordFromByteArray = new RecordFromByteArray(that)
-
   def from(that: ByteString): RecordFromByteString = new RecordFromByteString(that)
 
-  def from(stream: DataInputStream): RecordFromByteArray = Record.from(Files.readSome(stream, BYTE_COUNT_IN_RECORD))
+  def from(stream: DataInputStream): RecordFromStream = new RecordFromStream(Files.readSome(stream, BYTE_COUNT_IN_RECORD))
+
+  private def getCompareIter(iter: Unit => Byte): Iterator[Byte] = new Iterator[Byte] {
+    private var nextIndex = BYTE_OFFSET_OF_KEY
+
+    override def hasNext: Boolean = nextIndex < BYTE_COUNT_IN_KEY
+
+    override def next(): Byte = {
+      nextIndex += 1
+      iter.apply()
+    }
+  }
+
+  def getKeyIter(iterable: IterableOnce[Byte]): Unit => Byte = {
+    val iter = iterable.iterator
+    _ => iter.next
+  }
+
+  def getKeyIter(byteString: ByteString): Unit => Byte = {
+    val iter = byteString.iterator
+    _ => iter.next
+  }
 }

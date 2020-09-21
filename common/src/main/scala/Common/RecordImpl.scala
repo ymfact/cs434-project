@@ -5,22 +5,20 @@ import com.google.protobuf.ByteString
 
 import scala.collection.mutable
 
-class RecordArrayPtr (val buffer: mutable.Buffer[Byte], index: Int) extends Record {
-  override def getKeyByte(keyIndex: Int): Byte = buffer(index * BYTE_COUNT_IN_RECORD + BYTE_OFFSET_OF_KEY + keyIndex)
+class RecordPtr(val slicedBuffer: mutable.Buffer[Byte]) extends Record {
+  override def getKeyIter: Unit => Byte = Record.getKeyIter(raw)
 
-  def raw: mutable.Buffer[Byte] = buffer.slice(index * BYTE_COUNT_IN_RECORD, (index + 1) * BYTE_COUNT_IN_RECORD)
+  def raw: mutable.Buffer[Byte] = slicedBuffer
 }
 
-class RecordFromByteString (byteString: ByteString) extends Record {
-  override def getKeyByte(keyIndex: Int): Byte = byteString.byteAt(BYTE_OFFSET_OF_KEY + keyIndex)
-
-  def getKeyByteString: ByteString = byteString.substring(BYTE_OFFSET_OF_KEY, BYTE_OFFSET_OF_KEY + BYTE_COUNT_IN_KEY)
+class RecordFromByteString (raw: ByteString) extends Record {
+  override def getKeyIter: Unit => Byte = Record.getKeyIter(raw)
 }
 
-class RecordFromByteArray (arr: Array[Byte]) extends Record {
-  override def getKeyByte(keyIndex: Int): Byte = arr(BYTE_OFFSET_OF_KEY + keyIndex)
+class RecordFromStream(arr: Array[Byte]) extends Record {
+  override def getKeyIter: Unit => Byte = Record.getKeyIter(raw)
 
-  def getKeyByteString: ByteString = ByteString.copyFrom(arr.slice(BYTE_OFFSET_OF_KEY, BYTE_OFFSET_OF_KEY + BYTE_COUNT_IN_KEY))
+  def raw: Array[Byte] = arr
 
-  def toByteArray: Array[Byte] = arr
+  def key: Array[Byte] = arr.slice(BYTE_OFFSET_OF_KEY, BYTE_OFFSET_OF_KEY + BYTE_COUNT_IN_KEY)
 }

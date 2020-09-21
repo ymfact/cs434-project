@@ -7,14 +7,14 @@ import Common.Util.log2
 import scala.collection.mutable
 
 object Sorts {
-  def sortFromSorteds(streams: collection.Seq[RecordStream]): Iterator[RecordFromByteArray] = new Iterator[RecordFromByteArray] {
-    private val queue = mutable.SortedMap[RecordFromByteArray, Iterator[RecordFromByteArray]]()
+  def sortFromSorteds(streams: Seq[RecordStream]): Iterator[RecordFromStream] = new Iterator[RecordFromStream] {
+    private val queue = mutable.SortedMap[RecordFromStream, Iterator[RecordFromStream]]()
     queue.addAll(streams.map(_.iterator).map(iter => iter.next() -> iter))
     private var iter = queue.iterator
 
     override def hasNext: Boolean = iter.hasNext
 
-    override def next(): RecordFromByteArray = {
+    override def next(): RecordFromStream = {
       val (record, arrayIter) = iter.next()
       queue.remove(record)
       if (arrayIter.hasNext)

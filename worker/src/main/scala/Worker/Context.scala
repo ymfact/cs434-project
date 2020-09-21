@@ -5,7 +5,7 @@ import java.io.File
 import Common.Const.BYTE_COUNT_IN_KEY
 import Common.Util.NamedParamForced._
 import Common.Util.cleanTemp
-import Common.{Files, Protocol, RecordArray, RecordStream, Sorts}
+import Common.{Files, Protocol, RecordArray, RecordFromStream, RecordStream, Sorts}
 import cask.Request
 import com.google.protobuf.ByteString
 import org.apache.logging.log4j.scala.Logging
@@ -70,7 +70,7 @@ class Context(x:NamedParam = Forced, rootDir: File, workerCount: Int, val worker
     val sorted = Sorts.sortFromSorteds(partitions)
     for ((sorted, partitionIndex) <- sorted.grouped(partitionSize).zipWithIndex){
       val path = new File(workerDir, s"$partitionIndex").toPath
-      val data = sorted.map(_.toByteArray).map(ByteString.copyFrom).fold(ByteString.EMPTY)(_ concat _)
+      val data = sorted.map(_.raw).map(ByteString.copyFrom).fold(ByteString.EMPTY)(_ concat _)
       Files.write(path, data)
     }
     streams.foreach(_.close())

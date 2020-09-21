@@ -4,11 +4,10 @@ import java.io.{DataInputStream, DataOutputStream}
 import java.nio.file.Files.{newInputStream, newOutputStream, readAllBytes}
 import java.nio.file.Path
 
-import Common.RecordStream.recordsToByteString
 import com.google.protobuf.ByteString
 import org.apache.logging.log4j.scala.Logging
 
-import scala.util.{Try, Using}
+import scala.util.Using
 
 object Files extends Logging {
 
@@ -28,10 +27,10 @@ object Files extends Logging {
 
   def write(path: Path, data: ByteString): Unit = outputStream(path)(data.writeTo)
 
-  def write(path: Path, records: Iterable[RecordFromByteArray]): Unit = {
+  def write(path: Path, records: Iterable[RecordFromStream]): Unit = {
     outputStream(path) { stream =>
       for (record <- records)
-        stream.write(record.toByteArray)
+        stream.write(record.raw)
     }
   }
 }

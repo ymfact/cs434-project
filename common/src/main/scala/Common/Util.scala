@@ -1,15 +1,14 @@
 package Common
 
-import java.io.{File, FilenameFilter}
-import java.net.ConnectException
+import java.io.File
 
 import com.google.protobuf.empty.Empty
-import org.apache.logging.log4j.scala.Logging
 import io.undertow.util.FileUtils
-import scalapb.{GeneratedMessage, GeneratedMessageCompanion}
+import org.apache.logging.log4j.scala.Logging
 import scalaj.http.Http
+import scalapb.{GeneratedMessage, GeneratedMessageCompanion}
 
-import scala.annotation.tailrec
+import scala.collection.parallel.CollectionConverters.ArrayIsParallelizable
 
 object Util extends Logging {
   def clean(dir: File) {

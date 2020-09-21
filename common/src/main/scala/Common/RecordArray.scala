@@ -6,28 +6,28 @@ import com.google.protobuf.ByteString
 import scala.collection.mutable
 import scala.jdk.CollectionConverters.IteratorHasAsScala
 
-class RecordArray (buffer: mutable.Buffer[Byte]) extends mutable.Seq[RecordArrayPtr] {
-  override def update(idx: Int, elem: RecordArrayPtr): Unit = update(idx, elem.raw)
+class RecordArray (buffer: mutable.Buffer[Byte]) extends mutable.Seq[RecordPtr] {
+  override def update(idx: Int, elem: RecordPtr): Unit = update(idx, elem.raw)
 
   private def update(idx: Int, elem: IterableOnce[Byte]): Unit = buffer.patchInPlace(idx * BYTE_COUNT_IN_RECORD, elem, BYTE_COUNT_IN_RECORD)
 
-  override def apply(i: Int): RecordArrayPtr = new RecordArrayPtr(buffer, i)
+  override def apply(idx: Int): RecordPtr = new RecordPtr(buffer.slice(idx * BYTE_COUNT_IN_RECORD, (idx+1) * BYTE_COUNT_IN_RECORD))
 
   override def length: Int = buffer.length / BYTE_COUNT_IN_RECORD
 
-  class Iterator extends scala.Iterator[RecordArrayPtr] {
+  class Iterator extends scala.Iterator[RecordPtr] {
     var currentIndex: Int = 0
 
     override def hasNext: Boolean = currentIndex < RecordArray.this.length
 
-    override def next(): RecordArrayPtr = {
-      val next = new RecordArrayPtr(buffer, currentIndex)
+    override def next(): RecordPtr = {
+      val next = RecordArray.this.apply(currentIndex)
       currentIndex += 1
       next
     }
   }
 
-  override def iterator: scala.Iterator[RecordArrayPtr] = new Iterator
+  override def iterator: scala.Iterator[RecordPtr] = new Iterator
 
   def toByteString: ByteString = {
     val iter = buffer.iterator

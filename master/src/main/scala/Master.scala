@@ -18,7 +18,7 @@ class Master(ctx: Context) extends Logging {
       worker.send(Sample)
     }.map { case (worker, result) =>
       result.bytes
-    }.toSeq
+    }.to(Seq)
 
   samples.foreach(sample => logger.info(s"sample received: ${sample.size}"))
 
@@ -28,9 +28,9 @@ class Master(ctx: Context) extends Logging {
 
   ctx.broadcast.map{ worker =>
     worker.send(Classify, new Bytes(bytes=sampleRanges))
-  }.seq
+  }.to(Seq)
 
   ctx.broadcast.map{ worker =>
     worker.send(FinalSort)
-  }.seq
+  }.to(Seq)
 }
