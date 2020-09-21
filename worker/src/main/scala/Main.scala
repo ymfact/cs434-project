@@ -1,10 +1,6 @@
 
-import java.util.concurrent.{ExecutorService, Executors}
-
 import Worker.{Context, Parser}
 import org.backuity.clist.Cli
-
-import scala.concurrent.ExecutionContext
 
 object Main {
   def main(args: Array[String]): Unit = {

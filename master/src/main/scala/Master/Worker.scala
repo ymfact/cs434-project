@@ -2,9 +2,9 @@ package Master
 
 import Common.Protocol
 import com.google.protobuf.empty.Empty
-import scalapb.{GeneratedMessage, GeneratedMessageCompanion}
+import scalapb.GeneratedMessage
 
-class Worker (util: Util, workerIndex: Int) {
+class Worker(workerIndex: Int) {
   def send[OrderMsgType <: GeneratedMessage, ResultMsgType <: GeneratedMessage]
   (protocol: Protocol[OrderMsgType, ResultMsgType], msg: GeneratedMessage = new Empty): (Worker, ResultMsgType) =
     (this, Common.Util.send(workerIndex, protocol, msg))

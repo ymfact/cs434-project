@@ -9,8 +9,6 @@ trait Record extends Ordered[Record] {
 
   import Record._
 
-  protected def getKeyIter: Unit => Byte
-
   override def compare(that: Record): Int = {
     val thisIter = getCompareIter(this.getKeyIter)
     val thatIter = getCompareIter(that.getKeyIter)
@@ -31,12 +29,24 @@ trait Record extends Ordered[Record] {
     }
     0
   }
+
+  protected def getKeyIter: Unit => Byte
 }
 
 object Record {
   def from(that: ByteString): RecordFromByteString = new RecordFromByteString(that)
 
   def from(stream: DataInputStream): RecordFromStream = new RecordFromStream(Files.readSome(stream, BYTE_COUNT_IN_RECORD))
+
+  def getKeyIter(iterable: IterableOnce[Byte]): Unit => Byte = {
+    val iter = iterable.iterator
+    _ => iter.next
+  }
+
+  def getKeyIter(byteString: ByteString): Unit => Byte = {
+    val iter = byteString.iterator
+    _ => iter.next
+  }
 
   private def getCompareIter(iter: Unit => Byte): Iterator[Byte] = new Iterator[Byte] {
     private var nextIndex = BYTE_OFFSET_OF_KEY
@@ -47,15 +57,5 @@ object Record {
       nextIndex += 1
       iter.apply()
     }
-  }
-
-  def getKeyIter(iterable: IterableOnce[Byte]): Unit => Byte = {
-    val iter = iterable.iterator
-    _ => iter.next
-  }
-
-  def getKeyIter(byteString: ByteString): Unit => Byte = {
-    val iter = byteString.iterator
-    _ => iter.next
   }
 }

@@ -5,7 +5,7 @@ import java.io.File
 import Common.Const.BYTE_COUNT_IN_KEY
 import Common.Util.NamedParamForced._
 import Common.Util.cleanTemp
-import Common.{Files, Protocol, RecordArray, RecordStream, Sorts}
+import Common._
 import cask.Request
 import com.google.protobuf.ByteString
 import org.apache.logging.log4j.scala.Logging
@@ -13,11 +13,9 @@ import scalapb.GeneratedMessage
 
 import scala.collection.parallel.CollectionConverters.seqIsParallelizable
 
-class Context(x:NamedParam = Forced, rootDir: File, workerCount: Int, val workerIndex: Int, partitionCount: Int, partitionSize: Int, sampleCount: Int, isBinary: Boolean) extends Logging {
+class Context(x: NamedParam = Forced, rootDir: File, workerCount: Int, val workerIndex: Int, partitionCount: Int, partitionSize: Int, sampleCount: Int, isBinary: Boolean) extends Logging {
 
-  private val util = new Util(rootDir=rootDir, workerCount=workerCount, workerIndex=workerIndex, partitionCount=partitionCount, partitionSize=partitionSize, sampleCount=sampleCount, isBinary=isBinary)
-
-  def workerDir: File = util.workerDir
+  private val util = new Util(rootDir = rootDir, workerCount = workerCount, workerIndex = workerIndex, partitionCount = partitionCount, partitionSize = partitionSize, sampleCount = sampleCount, isBinary = isBinary)
 
   def endPoint[OrderMsgType <: GeneratedMessage, ResultMsgType <: GeneratedMessage]
   (protocol: Protocol[OrderMsgType, ResultMsgType])
@@ -44,13 +42,13 @@ class Context(x:NamedParam = Forced, rootDir: File, workerCount: Int, val worker
     Files.write(path, data)
   }
 
-  def finalSort(): Unit ={
+  def finalSort(): Unit = {
     sortEachPartition()
     mergeAllPartitions()
     cleanTemp(workerDir)
   }
 
-  private def sortEachPartition(): Unit ={
+  private def sortEachPartition(): Unit = {
     (0 until partitionCount * workerCount).par.foreach({ partitionIndex =>
       logger.info(s"sorting partition $partitionIndex")
       val path = new File(workerDir, s"temp$partitionIndex").toPath
@@ -60,7 +58,9 @@ class Context(x:NamedParam = Forced, rootDir: File, workerCount: Int, val worker
     })
   }
 
-  private def mergeAllPartitions(): Unit ={
+  def workerDir: File = util.workerDir
+
+  private def mergeAllPartitions(): Unit = {
     val streams = (0 until partitionCount * workerCount).map({ partitionIndex =>
       val path = new File(workerDir, s"temp$partitionIndex").toPath
       Files.inputStreamShouldBeClosed(path)
@@ -68,7 +68,7 @@ class Context(x:NamedParam = Forced, rootDir: File, workerCount: Int, val worker
     logger.info(s"merging all partitions")
     val partitions = streams.map(RecordStream.from)
     val sorted = Sorts.sortFromSorteds(partitions)
-    for ((sorted, partitionIndex) <- sorted.grouped(partitionSize).to(LazyList).par.zipWithIndex){
+    for ((sorted, partitionIndex) <- sorted.grouped(partitionSize).to(LazyList).par.zipWithIndex) {
       val path = new File(workerDir, s"$partitionIndex").toPath
       val data = sorted.map(_.raw).map(ByteString.copyFrom).fold(ByteString.EMPTY)(_ concat _)
       Files.write(path, data)

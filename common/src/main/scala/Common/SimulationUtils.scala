@@ -7,7 +7,7 @@ import org.apache.logging.log4j.scala.Logging
 
 // from https://stackoverflow.com/questions/934191/how-to-check-existence-of-a-program-in-the-path/38073998#38073998
 
-object SimulationUtils extends Logging{
+object SimulationUtils extends Logging {
 
   def lookForProgramInPath(desiredProgram: String): Path = {
     val pb = new ProcessBuilder(if (isWindows) "where"
@@ -17,9 +17,9 @@ object SimulationUtils extends Logging{
       val proc = pb.start
       val errCode = proc.waitFor
       if (errCode == 0) {
-          val reader = new BufferedReader(new InputStreamReader(proc.getInputStream))
-          try foundProgram = Paths.get(reader.readLine)
-          finally if (reader != null) reader.close()
+        val reader = new BufferedReader(new InputStreamReader(proc.getInputStream))
+        try foundProgram = Paths.get(reader.readLine)
+        finally if (reader != null) reader.close()
         logger.info(desiredProgram + " has been found at : " + foundProgram)
       }
       else

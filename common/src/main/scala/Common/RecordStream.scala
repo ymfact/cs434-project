@@ -6,6 +6,7 @@ import com.google.protobuf.ByteString
 
 object RecordStream {
   type RecordStream = LazyList[RecordFromStream]
+
   def from(stream: DataInputStream): RecordStream = {
     LazyList.continually({
       try Some(Record.from(stream)) catch {

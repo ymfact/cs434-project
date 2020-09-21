@@ -1,5 +1,4 @@
-import Common.Const.BYTE_COUNT_IN_RECORD
-import Common.Protocol.{Classify, Clean, FinalSort, Gensort, Sample}
+import Common.Protocol._
 import Master.Context
 import bytes.Bytes
 import com.google.protobuf.ByteString
@@ -26,11 +25,11 @@ class Master(ctx: Context) extends Logging {
 
   logger.info(s"sample ranges: ${sampleRanges.size}")
 
-  ctx.broadcast.map{ worker =>
-    worker.send(Classify, new Bytes(bytes=sampleRanges))
+  ctx.broadcast.map { worker =>
+    worker.send(Classify, new Bytes(bytes = sampleRanges))
   }.to(Seq)
 
-  ctx.broadcast.map{ worker =>
+  ctx.broadcast.map { worker =>
     worker.send(FinalSort)
   }.to(Seq)
 }

@@ -4,8 +4,6 @@ import org.junit.runner.RunWith
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatestplus.junit.JUnitRunner
 
-import scala.collection.parallel.CollectionConverters.seqIsParallelizable
-
 @RunWith(classOf[JUnitRunner])
 class TestIntegration extends AnyFunSuite {
 
@@ -19,7 +17,7 @@ class TestIntegration extends AnyFunSuite {
 
     val workerContexts =
       (0 until WORKER_COUNT)
-        .map( workerIndex =>
+        .map(workerIndex =>
           new Worker.Context(
             rootDir = FILE_DIR,
             workerCount = WORKER_COUNT,
@@ -39,7 +37,7 @@ class TestIntegration extends AnyFunSuite {
   }
 
   test("test") {
-    new Launch{
+    new Launch {
       val workers = workerContexts.map(new Worker(_))
       val master = new Master(masterContext)
     }

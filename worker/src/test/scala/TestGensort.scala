@@ -34,21 +34,21 @@ class TestGensort extends AnyFunSuite {
   test("clean") {
     new Env {
       ctx.workerDir.mkdirs()
-      ctx.clean
+      ctx.clean()
       assert(!ctx.workerDir.exists())
     }
   }
 
   test("gensort") {
     new Env {
-      ctx.clean
-      ctx.gensort
+      ctx.clean()
+      ctx.gensort()
       assert(new File(ctx.workerDir, "0").exists())
 
       val file = new File(ctx.workerDir, s"${PARTITION_COUNT - 1}")
       assert(file.exists())
 
-      Using(Source.fromFile(file)){ source =>
+      Using(Source.fromFile(file)) { source =>
         val line = source.getLines().next()
         assert(line.substring(12, 44).toInt === 50000)
       }

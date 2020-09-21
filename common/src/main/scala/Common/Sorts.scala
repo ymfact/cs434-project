@@ -32,8 +32,11 @@ object Sorts {
     val stepCount = log2(len).ceil.toInt
 
     var srcDest = (records, extra)
+
     def src: RecordArray = srcDest._1
+
     def dest: RecordArray = srcDest._2
+
     for (step <- 0 until stepCount) {
       mergeSort(src, dest, step)
       srcDest = srcDest.swap
