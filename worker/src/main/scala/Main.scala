@@ -11,6 +11,7 @@ object Main {
         workerIndex = parser.workerIndex,
         partitionCount = parser.partitionCount,
         partitionSize = parser.partitionSize,
+        sampleCount = parser.sampleCount,
         isBinary = parser.isBinary)
       new Worker(ctx)
     }

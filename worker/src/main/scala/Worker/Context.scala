@@ -13,9 +13,9 @@ import scalapb.GeneratedMessage
 
 import scala.collection.parallel.CollectionConverters.seqIsParallelizable
 
-class Context(x:NamedParam = Forced, rootDir: File, workerCount: Int, val workerIndex: Int, partitionCount: Int, partitionSize: Int, isBinary: Boolean) extends Logging {
+class Context(x:NamedParam = Forced, rootDir: File, workerCount: Int, val workerIndex: Int, partitionCount: Int, partitionSize: Int, sampleCount: Int, isBinary: Boolean) extends Logging {
 
-  private val util = new Util(rootDir=rootDir, workerCount=workerCount, workerIndex=workerIndex, partitionCount=partitionCount, partitionSize=partitionSize, isBinary=isBinary)
+  private val util = new Util(rootDir=rootDir, workerCount=workerCount, workerIndex=workerIndex, partitionCount=partitionCount, partitionSize=partitionSize, sampleCount=sampleCount, isBinary=isBinary)
 
   def workerDir: File = util.workerDir
 

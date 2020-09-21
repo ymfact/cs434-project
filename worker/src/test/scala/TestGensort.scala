@@ -16,6 +16,7 @@ class TestGensort extends AnyFunSuite {
     val WORKER_COUNT = 4
     val PARTITION_COUNT = 3
     val PARTITION_SIZE = 0x10000
+    val sampleCount = 1000
     val IS_BINARY = false
 
     val ctx =
@@ -25,6 +26,7 @@ class TestGensort extends AnyFunSuite {
         workerIndex = WORKER_INDEX,
         partitionCount = PARTITION_COUNT,
         partitionSize = PARTITION_SIZE,
+        sampleCount = sampleCount,
         isBinary = IS_BINARY
       )
   }
