@@ -5,6 +5,7 @@ import Common.RecordStream.RecordStream
 import Common.Util.log2
 
 import scala.collection.mutable
+import scala.collection.parallel.CollectionConverters.seqIsParallelizable
 
 object Sorts {
   def sortFromSorteds(streams: Seq[RecordStream]): Iterator[RecordFromStream] = new Iterator[RecordFromStream] {
@@ -42,7 +43,7 @@ object Sorts {
 
   private def mergeSort(src: RecordArray, dest: RecordArray, step: Int): Unit = {
     val chunkSize = 1 << step
-    (0 until src.length by 2 * chunkSize).foreach(begin => {
+    (0 until src.length by 2 * chunkSize).par.foreach(begin => {
       val mid = src.length min (begin + chunkSize)
       val end = src.length min (begin + chunkSize + chunkSize)
       mergeSortConquer(src, dest, begin, mid, end)

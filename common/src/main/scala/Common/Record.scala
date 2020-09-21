@@ -1,6 +1,6 @@
 package Common
 
-import java.io.{DataInputStream, EOFException, InputStream}
+import java.io.DataInputStream
 
 import Common.Const.{BYTE_COUNT_IN_KEY, BYTE_COUNT_IN_RECORD, BYTE_OFFSET_OF_KEY}
 import com.google.protobuf.ByteString

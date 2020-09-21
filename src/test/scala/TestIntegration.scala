@@ -4,6 +4,8 @@ import org.junit.runner.RunWith
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatestplus.junit.JUnitRunner
 
+import scala.collection.parallel.CollectionConverters.seqIsParallelizable
+
 @RunWith(classOf[JUnitRunner])
 class TestIntegration extends AnyFunSuite {
 
@@ -40,7 +42,6 @@ class TestIntegration extends AnyFunSuite {
     new Launch{
       val workers = workerContexts.map(new Worker(_))
       val master = new Master(masterContext)
-      workers.foreach{_.close()}
     }
   }
 }

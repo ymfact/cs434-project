@@ -5,15 +5,15 @@ import java.util.concurrent.atomic.AtomicInteger
 
 import Common.Const.BYTE_COUNT_IN_RECORD
 import Common.Protocol.Collect
+import Common.{Files, Record, RecordArray, RecordStream, Sorts}
 import Common.RecordStream.recordsToByteString
 import Common.SimulationUtils.lookForProgramInPath
 import Common.Util.NamedParamForced._
-import Common.{Files, Record, RecordArray, RecordStream, Sorts}
 import bytes.Bytes
 import com.google.protobuf.ByteString
 import org.apache.logging.log4j.scala.Logging
 
-import scala.collection.parallel.CollectionConverters.MapIsParallelizable
+import scala.collection.parallel.CollectionConverters.{MapIsParallelizable, seqIsParallelizable}
 import scala.sys.process.Process
 
 class Util(x:NamedParam = Forced, rootDir: File, workerCount: Int, workerIndex: Int, partitionCount: Int, partitionSize: Int, sampleCount: Int, isBinary: Boolean) extends Logging {
@@ -24,16 +24,16 @@ class Util(x:NamedParam = Forced, rootDir: File, workerCount: Int, workerIndex: 
   def getNextNewFileName: Int = nextNewFileName.getAndIncrement
 
   def gensort(): Unit = {
-    (0 until partitionCount).foreach { partitionIndex =>
-      val command = gensortCommand(partitionIndex)
+    val programPath = lookForProgramInPath("gensort").toString
+    (0 until partitionCount).par.foreach { partitionIndex =>
+      val command = gensortCommand(programPath, partitionIndex)
       logger.info(command)
       workerDir.mkdirs()
       Process(command, workerDir).!!
     }
   }
 
-  private def gensortCommand(partitionIndex: Int): String = {
-    val programPath = lookForProgramInPath("gensort").toString
+  private def gensortCommand(programPath: String, partitionIndex: Int): String = {
     val binaryArg = if (isBinary) "" else "-a"
     val beginningRecord = (workerIndex * partitionCount + partitionIndex) * partitionSize
     s"'$programPath' $binaryArg -b$beginningRecord $partitionSize $partitionIndex"
@@ -59,7 +59,7 @@ class Util(x:NamedParam = Forced, rootDir: File, workerCount: Int, workerIndex: 
   }
 
   def classifyThenSendOrSave(keyRanges: Seq[KeyType]): Unit = {
-    (0 until partitionCount).foreach { partitionIndex =>
+    (0 until partitionCount).par.foreach { partitionIndex =>
       val path = new File(workerDir, s"$partitionIndex").toPath
       Files.inputStream(path){ stream =>
         val records = RecordStream.from(stream)

@@ -27,7 +27,7 @@ object Util extends Logging {
   (workerIndex: Int, protocol: Protocol[OrderMsgType, ResultMsgType], msg: GeneratedMessage = new Empty): ResultMsgType =
     Common.Util.send(protocol.ResultType, workerIndex, protocol.endpoint, msg)
 
-  private val TIMEOUT_MS = 60 * 60 * 1000
+  private val TIMEOUT_MS = 60 * 1000
 
   private def send[ResultMsgType <: GeneratedMessage]
   (resultType: GeneratedMessageCompanion[ResultMsgType], workerIndex: Int, endpoint: String, msg: GeneratedMessage): ResultMsgType = {
