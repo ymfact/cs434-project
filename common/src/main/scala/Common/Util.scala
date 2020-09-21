@@ -50,4 +50,6 @@ object Util extends Logging {
     val Forced = new NamedParam(42)
   }
 
+  def byteToUnsigned(byte: Byte): Int = byte & 0xff
+
 }

@@ -1,6 +1,7 @@
 package Common
 
 import Common.Const.BYTE_COUNT_IN_RECORD
+import Common.Util.byteToUnsigned
 import com.google.protobuf.ByteString
 
 import scala.collection.mutable
@@ -32,9 +33,9 @@ class RecordArray (buffer: mutable.Buffer[Byte]) extends mutable.Seq[RecordPtr] 
   def toByteString: ByteString = {
     val iter = buffer.iterator
     ByteString.readFrom(() =>
-      if (iter.hasNext)
-        iter.next()
-      else
+      if (iter.hasNext) {
+        byteToUnsigned(iter.next())
+      } else
         -1
     )
   }
@@ -43,8 +44,6 @@ class RecordArray (buffer: mutable.Buffer[Byte]) extends mutable.Seq[RecordPtr] 
 }
 
 object RecordArray {
-  def from(byteString: ByteString): RecordArray = from(byteString.iterator.asScala.map(_.toByte))
-
   def from(array: Array[Byte]): RecordArray = from(array.iterator)
 
   private def from(iter: Iterator[Byte]): RecordArray = {

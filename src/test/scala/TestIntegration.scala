@@ -15,7 +15,7 @@ class TestIntegration extends AnyFunSuite {
     val PARTITION_COUNT = 2
     val PARTITION_SIZE = 0x10000
     val SAMPLE_COUNT = 1000
-    val IS_BINARY = false
+    val IS_BINARY = true
 
     val workerContexts =
       (0 until WORKER_COUNT)
