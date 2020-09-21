@@ -11,6 +11,8 @@ import com.google.protobuf.ByteString
 import org.apache.logging.log4j.scala.Logging
 import scalapb.GeneratedMessage
 
+import scala.collection.parallel.CollectionConverters.seqIsParallelizable
+
 class Context(rootDir: File, val workerIndex: WorkerIndexType, workerCount: Int, partitionCount: Int, partitionSize: Int, isBinary: Boolean) extends Logging {
 
   private val util = new Util(rootDir, workerIndex, workerCount, partitionCount, partitionSize, isBinary)
@@ -49,7 +51,7 @@ class Context(rootDir: File, val workerIndex: WorkerIndexType, workerCount: Int,
   }
 
   private def sortEachPartition(): Unit ={
-    (0 until partitionCount * workerCount).foreach({ partitionIndex =>
+    (0 until partitionCount * workerCount).par.foreach({ partitionIndex =>
       logger.info(s"sorting partition $partitionIndex")
       val path = new File(workerDir, s"temp$partitionIndex").toPath
       val data = Files.readAll(path)
