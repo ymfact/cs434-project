@@ -24,7 +24,7 @@ class Worker(ctx: Context) extends MainRoutes with Logging {
 
   @Endpoint(Sample)
   def sample(data: Empty): Bytes = {
-    new Bytes(ctx.sample)
+    new Bytes(ctx.sample())
   }
 
   @Endpoint(Classify)

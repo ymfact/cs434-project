@@ -14,8 +14,24 @@ class TestIntegration extends AnyFunSuite {
     val PARTITION_SIZE = 0x10000
     val IS_BINARY = false
 
-    val workerContexts = (0 until WORKER_COUNT).map(new Worker.Context(FILE_DIR, _, WORKER_COUNT, PARTITION_COUNT, PARTITION_SIZE, IS_BINARY))
-    val masterContext = new Master.Context(FILE_DIR, WORKER_COUNT, PARTITION_COUNT, PARTITION_SIZE)
+    val workerContexts =
+      (0 until WORKER_COUNT)
+        .map( workerIndex =>
+          new Worker.Context(
+            rootDir = FILE_DIR,
+            workerCount = WORKER_COUNT,
+            workerIndex = workerIndex,
+            partitionCount = PARTITION_COUNT,
+            partitionSize = PARTITION_SIZE,
+            isBinary = IS_BINARY)
+        )
+    val masterContext =
+      new Master.Context(
+        rootDir = FILE_DIR,
+        workerCount = WORKER_COUNT,
+        partitionCount = PARTITION_COUNT,
+        partitionSize = PARTITION_SIZE
+      )
   }
 
   test("test") {

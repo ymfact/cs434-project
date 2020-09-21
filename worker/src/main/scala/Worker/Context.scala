@@ -3,9 +3,9 @@ package Worker
 import java.io.File
 
 import Common.Const.BYTE_COUNT_IN_KEY
+import Common.Util.NamedParamForced._
 import Common.Util.cleanTemp
 import Common.{Files, Protocol, RecordArray, RecordStream, Sorts}
-import Worker.Types.WorkerIndexType
 import cask.Request
 import com.google.protobuf.ByteString
 import org.apache.logging.log4j.scala.Logging
@@ -13,9 +13,9 @@ import scalapb.GeneratedMessage
 
 import scala.collection.parallel.CollectionConverters.seqIsParallelizable
 
-class Context(rootDir: File, val workerIndex: WorkerIndexType, workerCount: Int, partitionCount: Int, partitionSize: Int, isBinary: Boolean) extends Logging {
+class Context(x:NamedParam = Forced, rootDir: File, workerCount: Int, val workerIndex: Int, partitionCount: Int, partitionSize: Int, isBinary: Boolean) extends Logging {
 
-  private val util = new Util(rootDir, workerIndex, workerCount, partitionCount, partitionSize, isBinary)
+  private val util = new Util(rootDir=rootDir, workerCount=workerCount, workerIndex=workerIndex, partitionCount=partitionCount, partitionSize=partitionSize, isBinary=isBinary)
 
   def workerDir: File = util.workerDir
 

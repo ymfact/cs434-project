@@ -7,8 +7,8 @@ import Common.Const.{BYTE_COUNT_IN_RECORD, SAMPLE_COUNT}
 import Common.Protocol.Collect
 import Common.RecordStream.recordsToByteString
 import Common.SimulationUtils.lookForProgramInPath
+import Common.Util.NamedParamForced._
 import Common.{Files, Record, RecordArray, RecordStream, Sorts}
-import Worker.Types.WorkerIndexType
 import bytes.Bytes
 import com.google.protobuf.ByteString
 import org.apache.logging.log4j.scala.Logging
@@ -16,7 +16,7 @@ import org.apache.logging.log4j.scala.Logging
 import scala.collection.parallel.CollectionConverters.MapIsParallelizable
 import scala.sys.process.Process
 
-class Util(rootDir: File, workerIndex: WorkerIndexType, workerCount: Int, partitionCount: Int, partitionSize: Int, isBinary: Boolean) extends Logging {
+class Util(x:NamedParam = Forced, rootDir: File, workerCount: Int, workerIndex: Int, partitionCount: Int, partitionSize: Int, isBinary: Boolean) extends Logging {
 
   val workerDir = new File(rootDir, s"$workerIndex")
   val maxSampleCount = partitionSize / 4

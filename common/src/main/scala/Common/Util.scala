@@ -42,4 +42,13 @@ object Util extends Logging {
   }
 
   def log2(x: Double): Double = math.log(x) / math.log(2)
+
+
+  object NamedParamForced {
+
+    class NamedParam(val i: Int) extends AnyVal
+
+    val Forced = new NamedParam(42)
+  }
+
 }
