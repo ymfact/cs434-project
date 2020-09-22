@@ -7,22 +7,15 @@ import com.google.protobuf.ByteString
 import scala.collection.mutable
 
 class RecordArray(val buffer: mutable.Buffer[Byte]) extends mutable.IndexedSeq[RecordPtr] {
-  override def update(idx: Int, elem: RecordPtr): Unit = update(idx, elem.getView)
-
-  private def update(idx: Int, elem: IterableOnce[Byte]): Unit = buffer.patchInPlace(idx * BYTE_COUNT_IN_RECORD, elem, BYTE_COUNT_IN_RECORD)
+  override def update(idx: Int, elem: RecordPtr): Unit = buffer.patchInPlace(idx * BYTE_COUNT_IN_RECORD, elem.getView, BYTE_COUNT_IN_RECORD)
 
   override def apply(idx: Int): RecordPtr = new RecordPtr(buffer, idx)
 
   override def length: Int = buffer.length / BYTE_COUNT_IN_RECORD
 
   def toByteString: ByteString = {
-    val iter = buffer.iterator
-    ByteString.readFrom(() =>
-      if (iter.hasNext) {
-        byteToUnsigned(iter.next())
-      } else
-        -1
-    )
+    val iter = buffer.iterator.map(byteToUnsigned).take(buffer.length) ++ Iterator.continually(-1)
+    ByteString.readFrom(() => iter.next)
   }
 }
 

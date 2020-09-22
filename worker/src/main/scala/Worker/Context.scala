@@ -70,8 +70,7 @@ class Context(x: NamedParam = Forced, rootDir: File, workerCount: Int, val worke
     val sorted = Sorts.sortFromSorteds(partitions)
     for ((sorted, partitionIndex) <- sorted.grouped(partitionSize).to(LazyList).par.zipWithIndex) {
       val path = new File(workerDir, s"$partitionIndex").toPath
-      val data = sorted.map(_.raw).map(ByteString.copyFrom).fold(ByteString.EMPTY)(_ concat _)
-      Files.write(path, data)
+      Files.write(path, sorted)
     }
     streams.foreach(_.close())
   }
