@@ -15,6 +15,6 @@ class Util(x: NamedParam = Forced, rootDir: File, workerCount: Int, partitionCou
   def processSample(data: Seq[ByteString]): Iterator[ByteString] = {
     val recordArrays = data.map(_.newInput).map(new DataInputStream(_)).map(RecordStream.from)
     val sorted = Sorts.sortFromSorteds(recordArrays)
-    sorted.grouped(data.head.size() / BYTE_COUNT_IN_RECORD).map(_.head.key).map(ByteString.copyFrom).drop(1)
+    sorted.grouped(data.head.size() / BYTE_COUNT_IN_RECORD).map(_.head.copyKey).drop(1)
   }
 }

@@ -6,18 +6,15 @@ import Common.Const.{BYTE_COUNT_IN_KEY, BYTE_COUNT_IN_RECORD, BYTE_OFFSET_OF_KEY
 import com.google.protobuf.ByteString
 
 trait Record extends Ordered[Record] {
-
-  import Record._
-
   override def compare(that: Record): Int = {
-    val thisIter = getCompareIter(this.getKeyIter)
-    val thatIter = getCompareIter(that.getKeyIter)
+    val thisIter = this.getKeyIter
+    val thatIter = that.getKeyIter
     compare(thisIter, thatIter)
   }
 
   def compare(that: ByteString): Int = {
-    val thisIter = getCompareIter(this.getKeyIter)
-    val thatIter = getCompareIter(Record.getKeyIter(that))
+    val thisIter = this.getKeyIter
+    val thatIter = Record.getKeyIter(that)
     compare(thisIter, thatIter)
   }
 
@@ -30,7 +27,7 @@ trait Record extends Ordered[Record] {
     0
   }
 
-  protected def getKeyIter: Unit => Byte
+  protected def getKeyIter: Iterator[Byte]
 }
 
 object Record {
@@ -38,24 +35,17 @@ object Record {
 
   def from(stream: DataInputStream): RecordFromStream = new RecordFromStream(Files.readSome(stream, BYTE_COUNT_IN_RECORD))
 
-  def getKeyIter(iterable: IterableOnce[Byte]): Unit => Byte = {
-    val iter = iterable.iterator
-    _ => iter.next
-  }
+  def getKeyIter(iter: Iterator[Byte]): Iterator[Byte] = iter.slice(BYTE_OFFSET_OF_KEY, BYTE_OFFSET_OF_KEY + BYTE_COUNT_IN_KEY)
 
-  def getKeyIter(byteString: ByteString): Unit => Byte = {
-    val iter = byteString.iterator
-    _ => iter.next
-  }
-
-  private def getCompareIter(iter: Unit => Byte): Iterator[Byte] = new Iterator[Byte] {
+  def getKeyIter(byteString: ByteString): Iterator[Byte] = new Iterator[Byte] {
+    private val iter = byteString.iterator()
     private var nextIndex = BYTE_OFFSET_OF_KEY
 
     override def hasNext: Boolean = nextIndex < BYTE_COUNT_IN_KEY
 
     override def next(): Byte = {
       nextIndex += 1
-      iter.apply()
+      iter.nextByte()
     }
   }
 }
