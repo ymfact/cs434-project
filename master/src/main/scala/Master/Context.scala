@@ -18,5 +18,5 @@ class Context(x: NamedParam = Forced, rootDir: File, workerCount: Int, partition
 
   def broadcast: ParIterable[Worker] = workers.par
 
-  def processSample(data: Seq[ByteString]): Iterator[ByteString] = util.processSample(data)
+  def processSample(data: Seq[ByteString]): Seq[ByteString] = util.processSample(data)
 }
