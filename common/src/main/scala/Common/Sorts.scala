@@ -24,7 +24,7 @@ object Sorts {
 
   def mergeSort(records: RecordArray): RecordArray = {
     val len = records.length
-    val extraBuffer = mutable.ArrayBuffer.fill[Byte](len * BYTE_COUNT_IN_RECORD)(0)
+    val extraBuffer = Array.ofDim[Byte](len * BYTE_COUNT_IN_RECORD)
     val extra = new RecordArray(extraBuffer)
     val stepCount = log2(len).ceil.toInt
 
@@ -55,24 +55,23 @@ object Sorts {
     var rightCursor = mid
     val leftEnd = mid
     val rightEnd = end
-    var extraCursor = begin
+    var destCursor = begin
     while (true) {
       if (leftCursor >= leftEnd) {
-        dest.buffer.patchInPlace(extraCursor * BYTE_COUNT_IN_RECORD, src.buffer.view.slice(rightCursor * BYTE_COUNT_IN_RECORD, rightEnd * BYTE_COUNT_IN_RECORD), (rightEnd - rightCursor) * BYTE_COUNT_IN_RECORD)
+        dest.patchInPlace(destCursor, src, rightCursor, rightEnd - rightCursor)
+        return
+      } else if (rightCursor >= rightEnd) {
+        dest.patchInPlace(destCursor, src, leftCursor, leftEnd - leftCursor)
         return
       }
-      else if (rightCursor >= rightEnd) {
-        dest.buffer.patchInPlace(extraCursor * BYTE_COUNT_IN_RECORD, src.buffer.view.slice(leftCursor * BYTE_COUNT_IN_RECORD, leftEnd * BYTE_COUNT_IN_RECORD), (leftEnd - leftCursor) * BYTE_COUNT_IN_RECORD)
-        return
-      }
-      else if (src(leftCursor) < src(rightCursor)) {
-        dest(extraCursor) = src(leftCursor)
+      else if (src.compareRecord(leftCursor, rightCursor) < 0) {
+        dest.patchInPlace(destCursor, src, leftCursor)
         leftCursor += 1
       } else {
-        dest(extraCursor) = src(rightCursor)
+        dest.patchInPlace(destCursor, src, rightCursor)
         rightCursor += 1
       }
-      extraCursor += 1
+      destCursor += 1
     }
   }
 }

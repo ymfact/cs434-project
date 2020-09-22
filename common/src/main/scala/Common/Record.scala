@@ -11,30 +11,19 @@ trait Record extends Ordered[Record] {
   override def compare(that: Record): Int = {
     val thisIter = this.getKeyView
     val thatIter = that.getKeyView
-    compare(thisIter, thatIter)
+    Record.compare(thisIter, thatIter)
   }
 
   def compare(that: ByteString): Int = {
     val thisIter = this.getKeyView
     val thatIter = Record.getKeyView(that)
-    compare(thisIter, thatIter)
-  }
-
-  private def compare(iterLeft: View[Byte], iterRight: View[Byte]): Int = {
-    for ((left, right) <- iterLeft.zip(iterRight)) {
-      val compared = left.compareTo(right)
-      if (compared != 0)
-        return compared
-    }
-    0
+    Record.compare(thisIter, thatIter)
   }
 
   protected def getKeyView: View[Byte]
 }
 
 object Record {
-  def from(that: ByteString): RecordFromByteString = new RecordFromByteString(that)
-
   def from(stream: DataInputStream): RecordFromStream = new RecordFromStream(Files.readSome(stream, BYTE_COUNT_IN_RECORD))
 
   def getKeyView(view: View[Byte]): View[Byte] = view.slice(BYTE_OFFSET_OF_KEY, BYTE_OFFSET_OF_KEY + BYTE_COUNT_IN_KEY)
@@ -51,5 +40,14 @@ object Record {
         iter.nextByte()
       }
     }
+  }
+
+  def compare(iterLeft: View[Byte], iterRight: View[Byte]): Int = {
+    for ((left, right) <- iterLeft.zip(iterRight)) {
+      val compared = left.compareTo(right)
+      if (compared != 0)
+        return compared
+    }
+    0
   }
 }
