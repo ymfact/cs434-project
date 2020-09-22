@@ -68,7 +68,7 @@ class Context(x: NamedParam = Forced, rootDir: File, workerCount: Int, val worke
     logger.info(s"merging all partitions")
     val partitions = streams.map(RecordStream.from)
     val sorted = Sorts.sortFromSorteds(partitions)
-    for ((sorted, partitionIndex) <- sorted.grouped(partitionSize).to(LazyList).par.zipWithIndex) {
+    for ((sorted, partitionIndex) <- sorted.grouped(partitionSize).toSeq.par.zipWithIndex) {
       val path = new File(workerDir, s"$partitionIndex").toPath
       Files.write(path, sorted)
     }
