@@ -3,6 +3,7 @@ package Worker
 import java.io.File
 
 import Common.Const.BYTE_COUNT_IN_KEY
+import Common.RecordStream.RecordStream
 import Common.Util.NamedParamForced._
 import Common.Util.cleanTemp
 import Common._
@@ -44,7 +45,7 @@ class Context(x: NamedParam = Forced, rootDir: File, workerCount: Int, val worke
 
   def finalSort(): Unit = {
     sortEachPartition()
-    mergeAllPartitions()
+    mergeAll()
     cleanTemp(workerDir)
   }
 
@@ -60,18 +61,20 @@ class Context(x: NamedParam = Forced, rootDir: File, workerCount: Int, val worke
 
   def workerDir: File = util.workerDir
 
-  private def mergeAllPartitions(): Unit = {
-    val streams = (0 until partitionCount * workerCount).map({ partitionIndex =>
-      val path = new File(workerDir, s"temp$partitionIndex").toPath
-      Files.inputStreamShouldBeClosed(path)
-    })
+  private def mergeAll(): Unit = {
     logger.info(s"merging all partitions")
-    val partitions = streams.map(RecordStream.from)
-    val sorted = Sorts.sortFromSorteds(partitions)
+    val fileCount = partitionCount * workerCount
+    val paths = (0 until fileCount).map(fileIndex => new File(workerDir, s"temp$fileIndex").toPath)
+    val streams = paths.map(Files.inputStreamShouldBeClosed)
+    val files = streams.map(RecordStream.from)
+    sortAndWritePartitions(files)
+    streams.foreach(_.close())
+  }
+  private def sortAndWritePartitions(files: Seq[RecordStream]): Unit = {
+    val sorted = Sorts.sortFromSorteds(files)
     for ((sorted, partitionIndex) <- sorted.grouped(partitionSize).toSeq.par.zipWithIndex) {
       val path = new File(workerDir, s"$partitionIndex").toPath
       Files.write(path, sorted)
     }
-    streams.foreach(_.close())
   }
 }

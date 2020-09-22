@@ -27,11 +27,8 @@ object Sorts {
     val extraBuffer = Array.ofDim[Byte](len * BYTE_COUNT_IN_RECORD)
     val extra = new RecordArray(extraBuffer)
     val stepCount = log2(len).ceil.toInt
-
     var srcDest = (records, extra)
-
     def src: RecordArray = srcDest._1
-
     def dest: RecordArray = srcDest._2
 
     for (step <- 0 until stepCount) {
