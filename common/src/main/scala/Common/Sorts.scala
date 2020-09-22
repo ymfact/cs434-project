@@ -58,11 +58,11 @@ object Sorts {
     var extraCursor = begin
     while (true) {
       if (leftCursor >= leftEnd) {
-        dest.buffer.patchInPlace(extraCursor * BYTE_COUNT_IN_RECORD, src.buffer.iterator.slice(rightCursor * BYTE_COUNT_IN_RECORD, rightEnd * BYTE_COUNT_IN_RECORD), (rightEnd - rightCursor) * BYTE_COUNT_IN_RECORD)
+        dest.buffer.patchInPlace(extraCursor * BYTE_COUNT_IN_RECORD, src.buffer.view.slice(rightCursor * BYTE_COUNT_IN_RECORD, rightEnd * BYTE_COUNT_IN_RECORD), (rightEnd - rightCursor) * BYTE_COUNT_IN_RECORD)
         return
       }
       else if (rightCursor >= rightEnd) {
-        dest.buffer.patchInPlace(extraCursor * BYTE_COUNT_IN_RECORD, src.buffer.iterator.slice(leftCursor * BYTE_COUNT_IN_RECORD, leftEnd * BYTE_COUNT_IN_RECORD), (leftEnd - leftCursor) * BYTE_COUNT_IN_RECORD)
+        dest.buffer.patchInPlace(extraCursor * BYTE_COUNT_IN_RECORD, src.buffer.view.slice(leftCursor * BYTE_COUNT_IN_RECORD, leftEnd * BYTE_COUNT_IN_RECORD), (leftEnd - leftCursor) * BYTE_COUNT_IN_RECORD)
         return
       }
       else if (src(leftCursor) < src(rightCursor)) {

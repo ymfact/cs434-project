@@ -7,7 +7,7 @@ import com.google.protobuf.ByteString
 import scala.collection.mutable
 
 class RecordArray(val buffer: mutable.Buffer[Byte]) extends mutable.IndexedSeq[RecordPtr] {
-  override def update(idx: Int, elem: RecordPtr): Unit = update(idx, elem.getIter)
+  override def update(idx: Int, elem: RecordPtr): Unit = update(idx, elem.getView)
 
   private def update(idx: Int, elem: IterableOnce[Byte]): Unit = buffer.patchInPlace(idx * BYTE_COUNT_IN_RECORD, elem, BYTE_COUNT_IN_RECORD)
 
@@ -27,13 +27,7 @@ class RecordArray(val buffer: mutable.Buffer[Byte]) extends mutable.IndexedSeq[R
 }
 
 object RecordArray {
-  def from(array: Array[Byte]): RecordArray = from(array.iterator)
-
-  private def from(iter: Iterator[Byte]): RecordArray = {
-    val buffer = mutable.ArrayBuffer.fill[Byte](iter.length)(0)
-    buffer.patchInPlace(0, new IterableOnce[Byte] {
-      override def iterator: Iterator[Byte] = iter
-    }, iter.length)
-    new RecordArray(buffer)
+  def from(array: Array[Byte]): RecordArray = {
+    new RecordArray(mutable.ArrayBuffer.from(array))
   }
 }
