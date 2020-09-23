@@ -19,8 +19,6 @@ class Context(x: NamedParam = Forced, rootDir: File, val workerCount: Int, parti
 
   implicit val ec: ExecutionContextExecutorService = util.ec
 
-  def clean(): Unit = Common.Util.clean(util.masterDir)
-
   def broadcast[T](f: ProtoCallStub => Future[T]): Seq[T] = workers.par.map(worker => Await.result(f(worker), Duration.Inf)).seq.toSeq
 
   def processSample(data: Seq[ByteString]): Seq[ByteString] = util.processSample(data)

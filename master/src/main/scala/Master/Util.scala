@@ -15,8 +15,6 @@ class Util(x: NamedParam = Forced, rootDir: File, workerCount: Int, partitionCou
 
   val ec: ExecutionContextExecutorService = ExecutionContext.fromExecutorService(Executors.newSingleThreadExecutor)
 
-  val masterDir = new File(rootDir, "master")
-
   def processSample(data: Seq[ByteString]): Seq[ByteString] = {
     val recordArrays = data.map(_.newInput).map(new DataInputStream(_)).map(RecordStream.from)
     val sorted = Sorts.sortFromSorteds(recordArrays)

@@ -34,4 +34,6 @@ class Master(ctx: Context) extends Logging {
   ctx.broadcast {
     _.finalSort()
   }
+
+  logger.info(s"finished")
 }
