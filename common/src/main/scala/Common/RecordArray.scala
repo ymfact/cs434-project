@@ -4,8 +4,6 @@ import Common.Const.{BYTE_COUNT_IN_KEY, BYTE_COUNT_IN_RECORD, BYTE_OFFSET_OF_KEY
 import Common.Util.byteToUnsigned
 import com.google.protobuf.ByteString
 
-import scala.collection.mutable
-
 class RecordArray(val raw: Array[Byte]) {
 
   def length: Int = raw.length / BYTE_COUNT_IN_RECORD

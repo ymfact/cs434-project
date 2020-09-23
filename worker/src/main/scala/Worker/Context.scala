@@ -7,10 +7,8 @@ import Common.RecordStream.RecordStream
 import Common.Util.NamedParamForced._
 import Common.Util.cleanTemp
 import Common._
-import cask.Request
 import com.google.protobuf.ByteString
 import org.apache.logging.log4j.scala.Logging
-import scalapb.GeneratedMessage
 
 import scala.collection.parallel.CollectionConverters.seqIsParallelizable
 
@@ -18,13 +16,7 @@ class Context(x: NamedParam = Forced, rootDir: File, workerCount: Int, val worke
 
   private val util = new Util(rootDir = rootDir, workerCount = workerCount, workerIndex = workerIndex, partitionCount = partitionCount, partitionSize = partitionSize, sampleCount = sampleCount, isBinary = isBinary)
 
-  def endPoint[OrderMsgType <: GeneratedMessage, ResultMsgType <: GeneratedMessage]
-  (protocol: Protocol[OrderMsgType, ResultMsgType])
-  (f: OrderMsgType => ResultMsgType)
-  (request: Request): Array[Byte] = {
-    val orderMsg = protocol.OrderType.parseFrom(request.bytes)
-    f(orderMsg).toByteArray
-  }
+  val port: Int = util.port
 
   def clean(): Unit = Common.Util.clean(workerDir)
 

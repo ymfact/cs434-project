@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+service ProtoCall {
+  rpc Clean (Empty) returns (Empty) {}
+  rpc Gensort (Empty) returns (Empty) {}
+  rpc Sample (Empty) returns (Bytes) {}
+  rpc Classify (Bytes) returns (Empty) {}
+  rpc Collect (Bytes) returns (Empty) {}
+  rpc FinalSort (Empty) returns (Empty) {}
+}
+
+message Bytes {
+  bytes Bytes = 1;
+}
+
+message Empty {
+}

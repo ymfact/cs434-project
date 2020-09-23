@@ -1,58 +1,77 @@
 
-import Common.Protocol._
-import Common.Util.unitToEmpty
-import Worker.{Context, Endpoint}
-import bytes.Bytes
-import cask.MainRoutes
-import com.google.protobuf.empty.Empty
+import Worker.Context
+import io.grpc.{Server, ServerBuilder}
 import org.apache.logging.log4j.scala.Logging
+import protocall.{Bytes, Empty, ProtoCallGrpc}
 
-class Worker(ctx: Context) extends MainRoutes with Logging {
+import scala.concurrent.{ExecutionContext, Future}
 
-  override def port: Int = 65400 + ctx.workerIndex
+import Common.Util.unitToEmpty
 
+class Worker(executionContext: ExecutionContext, ctx: Context) extends Logging { self =>
 
-  @Endpoint(Clean)
-  def clean(data: Empty): Empty = {
-    ctx.clean()
+  private[this] var server: Server = _
+
+  def start(): Unit = {
+    val serverBuilder = ServerBuilder.forPort(ctx.port)
+    serverBuilder.addService(ProtoCallGrpc.bindService(new GreeterImpl, executionContext))
+    server = serverBuilder.build().start()
+    logger.info("Server started, listening on " + ctx.port)
+    sys.addShutdownHook {
+      System.err.println("*** shutting down gRPC server since JVM is shutting down")
+      self.stop()
+      System.err.println("*** server shut down")
+    }
+    logger.info(s"Initialized")
   }
 
-  @Endpoint(Gensort)
-  def gensort(data: Empty): Empty = {
-    ctx.gensort()
+  private def stop(): Unit = {
+    if (server != null) {
+      server.shutdown()
+    }
   }
 
-  @Endpoint(Sample)
-  def sample(data: Empty): Bytes = {
-    new Bytes(ctx.sample())
+  def blockUntilShutdown(): Unit = {
+    if (server != null) {
+      server.awaitTermination()
+    }
   }
 
-  @Endpoint(Classify)
-  def classify(data: Bytes): Empty = {
-    logger.info(s"key received: ${data.bytes.size()}")
-    ctx.classify(data.bytes)
-  }
+  private class GreeterImpl extends ProtoCallGrpc.ProtoCall {
+    override def clean(request: Empty): Future[Empty] = {
+      ctx.clean()
+      Future.successful()
+    }
 
-  @Endpoint(Collect)
-  def collect(data: Bytes): Empty = {
-    logger.info(s"collect received: ${data.bytes.size()}")
-    ctx.collect(data.bytes)
-  }
+    override def gensort(request: Empty): Future[Empty] = {
+      ctx.gensort()
+      Future.successful()
+    }
 
-  @Endpoint(FinalSort)
-  def finalSort(data: Empty): Empty = {
-    ctx.finalSort()
-    close()
-  }
+    override def sample(request: Empty): Future[Bytes] = {
+      Future.successful(new Bytes(ctx.sample()))
+    }
 
-  def close() {
-    new Thread(() => {
-      Thread.sleep(1000)
-      System.exit(0)
-    }).start()
-  }
+    override def classify(request: Bytes): Future[Empty] = {
+      logger.info(s"key received: ${request.bytes.size()}")
+      ctx.classify(request.bytes)
+      Future.successful()
+    }
 
-  initialize()
-  main(Array())
-  logger.info(s"Initialized")
+    override def collect(request: Bytes): Future[Empty] = {
+      logger.info(s"collect received: ${request.bytes.size()}")
+      ctx.collect(request.bytes)
+      Future.successful()
+    }
+
+    override def finalSort(request: Empty): Future[Empty] = {
+      logger.info("start final sort")
+      ctx.finalSort()
+      new Thread(() => {
+        Thread.sleep(1000)
+        self.stop()
+      }).start()
+      Future.successful()
+    }
+  }
 }

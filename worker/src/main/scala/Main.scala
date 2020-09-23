@@ -2,6 +2,8 @@
 import Worker.{Context, Parser}
 import org.backuity.clist.Cli
 
+import scala.concurrent.ExecutionContext
+
 object Main {
   def main(args: Array[String]): Unit = {
     Cli.parse(args).withCommand(new Parser) { parser =>
@@ -13,7 +15,9 @@ object Main {
         partitionSize = parser.partitionSize,
         sampleCount = parser.sampleCount,
         isBinary = parser.isBinary)
-      new Worker(ctx)
+      val worker = new Worker(ExecutionContext.global, ctx)
+      worker.start()
+      worker.blockUntilShutdown()
     }
   }
 }

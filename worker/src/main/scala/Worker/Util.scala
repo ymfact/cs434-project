@@ -4,14 +4,13 @@ import java.io.File
 import java.util.concurrent.atomic.AtomicInteger
 
 import Common.Const.BYTE_COUNT_IN_RECORD
-import Common.Protocol.Collect
 import Common.RecordStream.recordsToByteString
 import Common.SimulationUtils.lookForProgramInPath
 import Common.Util.NamedParamForced._
 import Common._
-import bytes.Bytes
 import com.google.protobuf.ByteString
 import org.apache.logging.log4j.scala.Logging
+import protocall.Bytes
 
 import scala.collection.parallel.CollectionConverters.{MapIsParallelizable, seqIsParallelizable}
 import scala.sys.process.Process
@@ -19,6 +18,7 @@ import scala.sys.process.Process
 class Util(x: NamedParam = Forced, rootDir: File, workerCount: Int, workerIndex: Int, partitionCount: Int, partitionSize: Int, sampleCount: Int, isBinary: Boolean) extends Logging {
 
   type KeyType = ByteString
+  val port: Int = 65400 + workerIndex
   val workerDir = new File(rootDir, s"$workerIndex")
   private val nextNewFileName: AtomicInteger = new AtomicInteger(partitionCount)
 
@@ -61,7 +61,8 @@ class Util(x: NamedParam = Forced, rootDir: File, workerCount: Int, workerIndex:
             val path = new File(workerDir, s"temp$partitionIndex").toPath
             Files.write(path, records)
           } else {
-            Common.Util.send(workerIndex, Collect, new Bytes(recordsToByteString(records)))
+            val client = Common.RPCClient(workerIndex)
+            client.collect(Bytes(recordsToByteString(records)))
           }
         }
       }
