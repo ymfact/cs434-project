@@ -1,39 +1,70 @@
+import java.util.concurrent.ConcurrentLinkedQueue
+import java.util.concurrent.atomic.AtomicBoolean
+
+import Common.Util.unitToEmpty
 import Master.Context
 import com.google.protobuf.ByteString
 import org.apache.logging.log4j.scala.Logging
-import protocall.Bytes
+import protocall.MasterServiceGrpc.MasterService
+import protocall.{DataForClassify, DataForConnect, Empty}
 
-import scala.concurrent.ExecutionContextExecutorService
-
-import Common.Util.unitToEmpty
+import scala.concurrent.{ExecutionContextExecutorService, Future}
+import scala.jdk.CollectionConverters.CollectionHasAsScala
 
 class Master(ctx: Context) extends Logging {
+
   implicit val ec: ExecutionContextExecutorService = ctx.ec
-  logger.info(s"Initialized")
+  private val workerDests: ConcurrentLinkedQueue[String] = new ConcurrentLinkedQueue
+  private val isRunStarted: AtomicBoolean = new AtomicBoolean
 
-  val samples: Seq[ByteString] = ctx.broadcast { worker =>
-    for {
-      _ <- worker.clean()
-      _ <- worker.gensort()
-      result <- worker.sample()
-    } yield result.bytes
+  ctx.startServer(new MasterServiceImpl)
+  private class MasterServiceImpl extends MasterService {
+    override def connect(request: DataForConnect): Future[Empty] = {
+      workerDests.add(request.dest)
+      logger.info(s"connected: ${request.dest}")
+      if(workerDests.size() == ctx.workerCount)
+        if(!isRunStarted.getAndSet(true)) {
+          logger.info(s"All workers are attached.")
+          ctx.stopServer()
+          Future {
+            ctx.connect(workerDests.asScala.toSeq)
+            run()
+          }
+        }
+      Future.successful()
+    }
   }
 
-  samples.foreach(sample => logger.info(s"sample received: ${sample.size}"))
+  def thisDest(): String = ctx.thisDest()
 
-  val sampleRanges: ByteString = ctx.processSample(samples).fold(ByteString.EMPTY)(_ concat _)
+  def blockUntilShutdown(): Unit = ctx.blockUntilShutdown()
 
-  logger.info(s"sample ranges: ${sampleRanges.size}")
+  private def run(): Unit = {
 
-  ctx.broadcast {
-    _.classify(Bytes(sampleRanges))
+    val samples: Seq[ByteString] = ctx.broadcast {
+      logger.info(s"Sending sample request...")
+      _.sample()
+    }.map( result =>{
+      logger.info(s"Received sample result.")
+      result.bytes
+    })
+
+    samples.foreach(sample => logger.info(s"sample received: ${sample.size}"))
+
+    val sampleRanges: Seq[ByteString] = ctx.processSample(samples)
+
+    logger.info(s"sample ranges: ${sampleRanges.size}")
+
+    ctx.broadcast {
+      _.classify(DataForClassify(sampleRanges, workerDests.asScala.toSeq))
+    }
+
+    logger.info(s"start final sort...")
+
+    ctx.broadcast {
+      _.finalSort()
+    }
+
+    logger.info(s"finished.")
   }
-
-  logger.info(s"start final sort")
-
-  ctx.broadcast {
-    _.finalSort()
-  }
-
-  logger.info(s"finished")
 }

@@ -1,12 +1,23 @@
 syntax = "proto3";
 
+service MasterService {
+  rpc Connect (DataForConnect) returns (Empty) {}
+}
+
 service ProtoCall {
-  rpc Clean (Empty) returns (Empty) {}
-  rpc Gensort (Empty) returns (Empty) {}
   rpc Sample (Empty) returns (Bytes) {}
-  rpc Classify (Bytes) returns (Empty) {}
+  rpc Classify (DataForClassify) returns (Empty) {}
   rpc Collect (Bytes) returns (Empty) {}
   rpc FinalSort (Empty) returns (Empty) {}
+}
+
+message DataForConnect{
+  string dest = 1;
+}
+
+message DataForClassify{
+  repeated bytes keys = 1;
+  repeated string dests = 2;
 }
 
 message Bytes {

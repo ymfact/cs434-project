@@ -1,75 +1,82 @@
 package Worker
 
 import java.io.File
+import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicInteger
 
-import Common.Const.BYTE_COUNT_IN_RECORD
+import Common.Const.{BYTE_COUNT_IN_RECORD, SAMPLE_COUNT}
 import Common.RecordStream.recordsToByteString
-import Common.SimulationUtils.lookForProgramInPath
 import Common.Util.NamedParamForced._
+import Common.Util.getMyAddress
 import Common._
 import com.google.protobuf.ByteString
+import io.grpc.Server
 import org.apache.logging.log4j.scala.Logging
-import protocall.Bytes
+import protocall.ProtoCallGrpc.{ProtoCall, ProtoCallStub}
+import protocall.{Bytes, DataForClassify}
 
 import scala.collection.parallel.CollectionConverters.{MapIsParallelizable, seqIsParallelizable}
-import scala.sys.process.Process
+import scala.concurrent.{ExecutionContext, ExecutionContextExecutorService}
 
-class Util(x: NamedParam = Forced, rootDir: File, workerCount: Int, workerIndex: Int, partitionCount: Int, partitionSize: Int, sampleCount: Int, isBinary: Boolean) extends Logging {
+class Util(x: NamedParam = Forced, masterDest: String, in: Seq[File], out: File) extends Logging {
 
-  type KeyType = ByteString
-  val port: Int = 65400 + workerIndex
-  val workerDir = new File(rootDir, s"$workerIndex")
-  private val nextNewFileName: AtomicInteger = new AtomicInteger(partitionCount)
+  implicit val ec: ExecutionContextExecutorService = ExecutionContext.fromExecutorService(Executors.newSingleThreadExecutor)
+
+  val inFiles: Seq[File] = in.flatMap(_.listFiles())
+
+  val outDir: File = out
+
+  private val nextNewFileName: AtomicInteger = new AtomicInteger
 
   def getNextNewFileName: Int = nextNewFileName.getAndIncrement
 
-  def gensort(): Unit = {
-    val programPath = lookForProgramInPath("gensort").toString
-    (0 until partitionCount).par.foreach { partitionIndex =>
-      val command = gensortCommand(programPath, partitionIndex)
-      logger.info(command)
-      workerDir.mkdirs()
-      Process(command, workerDir).!!
-    }
+  private var server: Server = _
+
+  def thisDest(): String = s"$getMyAddress:${server.getPort}"
+
+  def startServer(protoCall: ProtoCall): Unit = {
+    server = Common.Server.startWorker(protoCall: ProtoCall, logger)
   }
 
-  private def gensortCommand(programPath: String, partitionIndex: Int): String = {
-    val binaryArg = if (isBinary) "" else "-a"
-    val beginningRecord = (workerIndex * partitionCount + partitionIndex) * partitionSize
-    s"'$programPath' $binaryArg -b$beginningRecord $partitionSize $partitionIndex"
-  }
+  def stopServer(): Unit =
+    if (server != null)
+      server.shutdown()
+
+  def blockUntilShutdown(): Unit =
+    if(server != null)
+      server.awaitTermination()
 
   def sample(): ByteString = {
-    val path = new File(workerDir, "0").toPath
+    val path = inFiles.head.toPath
     val recordArray = Files.inputStream(path) { stream =>
-      val byteArray = Files.readSome(stream, sampleCount * BYTE_COUNT_IN_RECORD)
+      val byteArray = Files.readSome(stream, SAMPLE_COUNT * BYTE_COUNT_IN_RECORD)
       RecordArray.from(byteArray)
     }
     val sorted = Sorts.mergeSort(recordArray)
     sorted.toByteString
   }
 
-  def classifyThenSendOrSave(keyRanges: Seq[KeyType]): Unit = {
-    (0 until partitionCount).par.foreach { partitionIndex =>
-      val path = new File(workerDir, s"$partitionIndex").toPath
-      Files.inputStream(path) { stream =>
+  def classifyThenSendOrSave(data: DataForClassify): Unit = {
+    val keyRanges: Seq[ByteString] = data.keys
+    val clients: Seq[ProtoCallStub] = data.dests.map(RPCClient.worker)
+    val thisIndex: Int = data.dests.indexOf(thisDest())
+    inFiles.zipWithIndex.par.foreach { case(inFile, inFileIndex) =>
+      Files.inputStream(inFile.toPath) { stream =>
         val records = RecordStream.from(stream)
         val classified = records.groupBy(record => getOwnerOfRecord(record, keyRanges))
         for ((workerIndex, records) <- classified.par) {
-          if (workerIndex == this.workerIndex) {
-            val path = new File(workerDir, s"temp$partitionIndex").toPath
+          if (workerIndex == thisIndex) {
+            val path = new File(outDir, s"tempClassifiedMine$inFileIndex").toPath
             Files.write(path, records)
           } else {
-            val client = Common.RPCClient(workerIndex)
-            client.collect(Bytes(recordsToByteString(records)))
+            clients(workerIndex).collect(Bytes(recordsToByteString(records)))
           }
         }
       }
     }
   }
 
-  private def getOwnerOfRecord(recordPtr: Record, keyRanges: Seq[KeyType]): Int = {
+  private def getOwnerOfRecord(recordPtr: Record, keyRanges: Seq[ByteString]): Int = {
     for ((key, index) <- keyRanges.zipWithIndex)
       if (recordPtr.compare(key) < 0)
         return index

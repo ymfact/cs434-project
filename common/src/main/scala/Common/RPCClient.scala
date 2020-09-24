@@ -1,21 +1,28 @@
 package Common
 
 import io.grpc.{ManagedChannel, ManagedChannelBuilder}
-import protocall.ProtoCallGrpc
+import protocall.MasterServiceGrpc.MasterServiceStub
+import protocall.{MasterServiceGrpc, ProtoCallGrpc}
 import protocall.ProtoCallGrpc.ProtoCallStub
 
 import scala.collection.mutable
 
 object RPCClient {
-  val channels: mutable.Map[Int, ManagedChannel] = mutable.Map()
-  def apply(workerIndex: Int): ProtoCallStub = {
-    if(!channels.contains(workerIndex)) {
-      val port = 65400 + workerIndex
-      val builder = ManagedChannelBuilder.forAddress("localhost", port)
+  private val channels: mutable.Map[String, ManagedChannel] = mutable.Map()
+  private def getChannel(dest: String): ManagedChannel = {
+    if(!channels.contains(dest)) {
+      val builder = ManagedChannelBuilder.forTarget(dest)
       builder.usePlaintext()
-      channels.addOne(workerIndex -> builder.build)
+      channels.addOne(dest -> builder.build)
     }
+    channels(dest)
+  }
 
-    ProtoCallGrpc.stub(channels(workerIndex)).withWaitForReady()
+  def master(dest: String): MasterServiceStub = {
+    MasterServiceGrpc.stub(getChannel(dest)).withWaitForReady()
+  }
+
+  def worker(dest: String): ProtoCallStub = {
+    ProtoCallGrpc.stub(getChannel(dest)).withWaitForReady()
   }
 }

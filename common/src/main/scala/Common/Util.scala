@@ -1,6 +1,7 @@
 package Common
 
 import java.io.File
+import java.net.InetAddress
 
 import io.undertow.util.FileUtils
 import org.apache.logging.log4j.scala.Logging
@@ -17,8 +18,13 @@ object Util extends Logging {
 
   implicit def unitToEmpty(unit: Unit): Empty = new Empty
 
+  def cleanDir(dir: File): Unit = {
+    logger.info(s"clean out/")
+    dir.listFiles.filter(_.getName != "log.log").foreach(_.delete)
+  }
+
   def cleanTemp(dir: File): Unit = {
-    logger.info(s"clean temp*")
+    logger.info(s"clean out/temp")
     dir.listFiles.filter(_.getName.startsWith("temp")).foreach(_.delete)
   }
 
@@ -33,4 +39,5 @@ object Util extends Logging {
     class NamedParam(val i: Int) extends AnyVal
   }
 
+  def getMyAddress: String = java.net.InetAddress.getLocalHost.getHostAddress
 }

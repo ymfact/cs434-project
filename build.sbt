@@ -46,10 +46,6 @@ lazy val worker = project
 lazy val commonDependencies = Seq(
   "io.grpc" % "grpc-netty" % "1.32.1",
   "com.thesamet.scalapb" %% "scalapb-runtime-grpc" % "0.10.8",
-
-  "org.backuity.clist" %% "clist-core" % "3.5.1",
-  "org.backuity.clist" %% "clist-macros" % "3.5.1" % "provided",
-  "org.scalaj" %% "scalaj-http" % "2.4.2",
   "org.scala-lang.modules" %% "scala-parallel-collections" % "0.2.0",
   "io.undertow" % "undertow-core" % "2.2.0.Final",
 

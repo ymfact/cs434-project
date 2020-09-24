@@ -1,26 +1,22 @@
 
-import java.nio.file.Paths
+import java.io.File
+import java.util.concurrent.Executors
 
-import Worker.{Context, Parser}
-import org.backuity.clist.Cli
+import Worker.Context
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, ExecutionContextExecutorService}
 
 object Main {
+  implicit val ec: ExecutionContextExecutorService = ExecutionContext.fromExecutorService(Executors.newSingleThreadExecutor)
+
   def main(args: Array[String]): Unit = {
-    Cli.parse(args).withCommand(new Parser) { parser =>
-      System.setProperty("worker-index-for-log", parser.workerIndex.toString)
-      val ctx = new Context(
-        rootDir = parser.dir,
-        workerCount = parser.workerCount,
-        workerIndex = parser.workerIndex,
-        partitionCount = parser.partitionCount,
-        partitionSize = parser.partitionSize,
-        sampleCount = parser.sampleCount,
-        isBinary = parser.isBinary)
-      val worker = new Worker(ExecutionContext.global, ctx)
-      worker.start()
-      worker.blockUntilShutdown()
-    }
+    System.setProperty("out-dir", args.last) // for log
+    val ctx = new Context(
+      masterDest = args.head,
+      in = args.slice(2, args.length - 2).map(new File(_)),
+      out = new File(args.last)
+    )
+    val worker = new Worker(ctx)
+    worker.blockUntilShutdown()
   }
 }

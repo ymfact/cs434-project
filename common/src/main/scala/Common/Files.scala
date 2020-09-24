@@ -1,6 +1,6 @@
 package Common
 
-import java.io.{BufferedInputStream, BufferedOutputStream, DataInputStream, DataOutputStream}
+import java.io.{BufferedInputStream, BufferedOutputStream, DataInputStream, DataOutputStream, File}
 import java.nio.file.Files.{newInputStream, newOutputStream, readAllBytes}
 import java.nio.file.Path
 
@@ -12,8 +12,7 @@ import scala.util.Using
 
 object Files extends Logging {
 
-  def awaitFile(path: Path): Unit = {
-    val file = path.toFile
+  def awaitFile(file: File): Unit = {
     while (file.length == 0)
       Thread.`yield`()
   }
@@ -21,7 +20,7 @@ object Files extends Logging {
   def inputStream[T](path: Path)(f: DataInputStream => T): T = Using(inputStreamShouldBeClosed(path))(f).get
 
   def inputStreamShouldBeClosed(path: Path): DataInputStream = {
-    awaitFile(path)
+    awaitFile(path.toFile)
     new DataInputStream(new BufferedInputStream(newInputStream(path), FILE_CHUNK_SIE))
   }
 
@@ -31,9 +30,9 @@ object Files extends Logging {
     buffer
   }
 
-  def readAll(path: Path): Array[Byte] = {
-    awaitFile(path)
-    readAllBytes(path)
+  def readAll(file: File): Array[Byte] = {
+    awaitFile(file)
+    readAllBytes(file.toPath)
   }
 
   def write(path: Path, data: ByteString): Unit = {

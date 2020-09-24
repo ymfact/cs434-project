@@ -2,61 +2,67 @@ package Worker
 
 import java.io.File
 
-import Common.Const.BYTE_COUNT_IN_KEY
+import Common.Const.RECORD_COUNT_IN_OUT_FILE
 import Common.RecordStream.RecordStream
 import Common.Util.NamedParamForced._
-import Common.Util.cleanTemp
+import Common.Util.{cleanDir, cleanTemp}
 import Common._
 import com.google.protobuf.ByteString
 import org.apache.logging.log4j.scala.Logging
+import protocall.ProtoCallGrpc.ProtoCall
+import protocall.{DataForClassify, DataForConnect}
 
-import scala.collection.parallel.CollectionConverters.seqIsParallelizable
+import scala.collection.parallel.CollectionConverters.{ArrayIsParallelizable, seqIsParallelizable}
+import scala.concurrent.ExecutionContextExecutorService
 
-class Context(x: NamedParam = Forced, rootDir: File, workerCount: Int, val workerIndex: Int, partitionCount: Int, partitionSize: Int, sampleCount: Int, isBinary: Boolean) extends Logging {
+class Context(x: NamedParam = Forced, masterDest: String, in: Seq[File], out: File) extends Logging {
 
-  private val util = new Util(rootDir = rootDir, workerCount = workerCount, workerIndex = workerIndex, partitionCount = partitionCount, partitionSize = partitionSize, sampleCount = sampleCount, isBinary = isBinary)
+  private val util = new Util(masterDest=masterDest, in=in, out=out)
 
-  val port: Int = util.port
+  implicit val ec: ExecutionContextExecutorService = util.ec
 
-  def clean(): Unit = Common.Util.clean(workerDir)
+  def startServer(protoCall: ProtoCall): Unit = util.startServer(protoCall)
 
-  def gensort(): Unit = util.gensort()
+  def stopServer(): Unit = util.stopServer()
+
+  def blockUntilShutdown(): Unit = util.blockUntilShutdown()
+
+  def connectToMaster(): Unit = {
+    logger.info("Connecting to master...")
+    Common.RPCClient.master(masterDest).connect(DataForConnect(util.thisDest()))
+  }
 
   def sample(): ByteString = util.sample()
 
-  def classify(data: ByteString): Unit = {
-    val keyCount = data.size() / BYTE_COUNT_IN_KEY
-    val keyRanges = (0 until keyCount).map(index => data.substring(index * BYTE_COUNT_IN_KEY, (index + 1) * BYTE_COUNT_IN_KEY))
-    util.classifyThenSendOrSave(keyRanges)
+  def classify(data: DataForClassify): Unit = {
+    cleanDir(util.outDir)
+    util.classifyThenSendOrSave(data)
   }
 
   def collect(data: ByteString): Unit = {
-    val path = new File(workerDir, s"temp${util.getNextNewFileName}").toPath
+    logger.info(s"File received.")
+    val path = new File(util.outDir, s"tempClassifiedByOther${util.getNextNewFileName}").toPath
     Files.write(path, data)
   }
 
   def finalSort(): Unit = {
     sortEachPartition()
     mergeAll()
-    cleanTemp(workerDir)
+    cleanTemp(util.outDir)
   }
 
   private def sortEachPartition(): Unit = {
-    (0 until partitionCount * workerCount).par.foreach({ partitionIndex =>
-      logger.info(s"sorting partition $partitionIndex")
-      val path = new File(workerDir, s"temp$partitionIndex").toPath
-      val data = Files.readAll(path)
+    util.outDir.listFiles.filter(_.getName.startsWith("temp")).par.foreach({ file =>
+      logger.info(s"sorting partition: ${file.getName}")
+      val data = Files.readAll(file)
       val sorted = Sorts.mergeSort(RecordArray.from(data))
-      Files.write(path, sorted.toByteString)
+      Files.write(file.toPath, sorted.toByteString)
     })
   }
 
-  def workerDir: File = util.workerDir
-
   private def mergeAll(): Unit = {
-    logger.info(s"merging all partitions")
-    val fileCount = partitionCount * workerCount
-    val paths = (0 until fileCount).map(fileIndex => new File(workerDir, s"temp$fileIndex").toPath)
+    logger.info(s"merging all partitions...")
+    val paths = util.outDir.listFiles.filter(_.getName.startsWith("temp")).map(_.toPath)
     val streams = paths.map(Files.inputStreamShouldBeClosed)
     val files = streams.map(RecordStream.from)
     sortAndWritePartitions(files)
@@ -64,8 +70,9 @@ class Context(x: NamedParam = Forced, rootDir: File, workerCount: Int, val worke
   }
   private def sortAndWritePartitions(files: Seq[RecordStream]): Unit = {
     val sorted = Sorts.sortFromSorteds(files)
-    for ((sorted, partitionIndex) <- sorted.grouped(partitionSize).toSeq.par.zipWithIndex) {
-      val path = new File(workerDir, s"$partitionIndex").toPath
+    val grouped = sorted.grouped(RECORD_COUNT_IN_OUT_FILE).toSeq
+    for ((sorted, outFileIndex) <- grouped.par.zipWithIndex) {
+      val path = new File(util.outDir, s"$outFileIndex").toPath
       Files.write(path, sorted)
     }
   }

@@ -9,15 +9,16 @@ import scala.collection.parallel.CollectionConverters.seqIsParallelizable
 
 object Sorts {
   def sortFromSorteds(streams: Seq[RecordStream]): Iterator[RecordFromStream] = new Iterator[RecordFromStream] {
-    private var queue = mutable.SortedMap[RecordFromStream, Iterator[RecordFromStream]](streams.map(_.iterator).map(iter => iter.next() -> iter):_*)
+    type Pair = (RecordFromStream, Iterator[RecordFromStream])
+    implicit def comparator: Ordering[Pair] = (l: Pair, r: Pair) => -l._1.compare(r._1)
+    private val queue = mutable.PriorityQueue[Pair](streams.map(_.iterator).map(iter => iter.next() -> iter): _*)
 
     override def hasNext: Boolean = queue.nonEmpty
 
     override def next(): RecordFromStream = {
-      val (record, arrayIter) = queue.head
-      queue = queue.tail
+      val (record, arrayIter) = queue.dequeue
       if (arrayIter.hasNext)
-        queue.addOne(arrayIter.next() -> arrayIter)
+        queue.enqueue(arrayIter.next() -> arrayIter)
       record
     }
   }
