@@ -33,10 +33,18 @@ object Util extends Logging {
   def byteToUnsigned(byte: Byte): Int = byte & 0xff
 
   object NamedParamForced {
+    /**
+     * Usage:
+     * class A(x: NamedParam = Forced, a: Int, ...
+     */
+    val Forced: NamedParam = NamedParam()
 
-    val Forced = new NamedParam(42)
+    class NamedParam private(val a: Unit) extends AnyVal
 
-    class NamedParam(val i: Int) extends AnyVal
+    private object NamedParam {
+      def apply(): NamedParam = new NamedParam
+    }
+
   }
 
   def getMyAddress: String = java.net.InetAddress.getLocalHost.getHostAddress
