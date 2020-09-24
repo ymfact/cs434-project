@@ -1,50 +1,19 @@
-import java.util.concurrent.ConcurrentLinkedQueue
-import java.util.concurrent.atomic.AtomicBoolean
-
 import Common.Util.unitToEmpty
 import Master.Context
 import com.google.protobuf.ByteString
 import org.apache.logging.log4j.scala.Logging
-import protocall.MasterServiceGrpc.MasterService
-import protocall.{DataForClassify, DataForConnect, Empty}
-
-import scala.concurrent.{ExecutionContextExecutorService, Future}
-import scala.jdk.CollectionConverters.CollectionHasAsScala
+import protocall.DataForClassify
 
 class Master(ctx: Context) extends Logging {
 
-  implicit val ec: ExecutionContextExecutorService = ctx.ec
-  private val workerDests: ConcurrentLinkedQueue[String] = new ConcurrentLinkedQueue
-  private val isRunStarted: AtomicBoolean = new AtomicBoolean
-
-  ctx.startServer(new MasterServiceImpl)
-  private class MasterServiceImpl extends MasterService {
-    override def connect(request: DataForConnect): Future[Empty] = {
-      workerDests.add(request.dest)
-      logger.info(s"connected: ${request.dest}")
-      if(workerDests.size() == ctx.workerCount)
-        if(!isRunStarted.getAndSet(true)) {
-          logger.info(s"All workers are attached.")
-          ctx.stopServer()
-          Future {
-            ctx.connect(workerDests.asScala.toSeq)
-            run()
-          }
-        }
-      Future.successful()
-    }
-  }
-
   def thisDest(): String = ctx.thisDest()
 
-  def blockUntilShutdown(): Unit = ctx.blockUntilShutdown()
-
-  private def run(): Unit = {
+  ctx.awaitWorkers {
 
     val samples: Seq[ByteString] = ctx.broadcast {
       logger.info(s"Sending sample request...")
       _.sample()
-    }.map( result =>{
+    }.map(result => {
       logger.info(s"Received sample result.")
       result.bytes
     })
@@ -56,7 +25,7 @@ class Master(ctx: Context) extends Logging {
     logger.info(s"sample ranges: ${sampleRanges.size}")
 
     ctx.broadcast {
-      _.classify(DataForClassify(sampleRanges, workerDests.asScala.toSeq))
+      _.classify(DataForClassify(sampleRanges, ctx.workerDests))
     }
 
     logger.info(s"start final sort...")

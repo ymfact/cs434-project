@@ -7,7 +7,6 @@ object Main {
     val ctx = new Context(
       workerCount = args.head.toInt
     )
-    val master = new Master(ctx)
-    master.blockUntilShutdown()
+    new Master(ctx)
   }
 }
