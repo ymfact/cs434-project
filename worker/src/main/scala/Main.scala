@@ -1,14 +1,9 @@
 
 import java.io.File
-import java.util.concurrent.Executors
 
 import Worker.Context
 
-import scala.concurrent.{ExecutionContext, ExecutionContextExecutorService}
-
 object Main {
-  implicit val ec: ExecutionContextExecutorService = ExecutionContext.fromExecutorService(Executors.newSingleThreadExecutor)
-
   def main(args: Array[String]): Unit = {
     System.setProperty("out-dir", args.last) // for log
     val ctx = new Context(

@@ -11,11 +11,6 @@ import scala.language.implicitConversions
 
 object Util extends Logging {
 
-  def clean(dir: File) {
-    logger.info("clean")
-    FileUtils.deleteRecursive(dir.toPath)
-  }
-
   implicit def unitToEmpty(unit: Unit): Empty = new Empty
 
   def cleanDir(dir: File): Unit = {

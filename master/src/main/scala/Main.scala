@@ -1,12 +1,13 @@
-import java.io.File
-
-import Master.{Config, Context}
+import Master.{Context, WorkerListener}
 
 object Main {
   def main(args: Array[String]): Unit = {
-    val ctx = new Context(
-      workerCount = args.head.toInt
-    )
-    new Master(ctx)
+    val workerCount = args.head.toInt
+    WorkerListener.listenAndGetWorkerDests(workerCount){ workerDests =>
+      val ctx = new Context(
+        workerDests = workerDests
+      )
+      new Master(ctx)
+    }
   }
 }
