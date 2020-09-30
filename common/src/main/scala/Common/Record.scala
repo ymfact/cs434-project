@@ -1,6 +1,6 @@
 package Common
 
-import java.io.DataInputStream
+import java.io.{DataInputStream, OutputStream}
 
 import Common.Const.{BYTE_COUNT_IN_KEY, BYTE_COUNT_IN_RECORD, BYTE_OFFSET_OF_KEY}
 import com.google.protobuf.ByteString
@@ -21,10 +21,20 @@ trait Record extends Ordered[Record] {
   }
 
   protected def getKeyView: View[Byte]
+
+  def copyKey: ByteString
+
+  def getByteArray: Array[Byte]
+
+  def getByteString: ByteString
+
+  def write(stream: OutputStream): Unit
 }
 
 object Record {
   def from(stream: DataInputStream): RecordFromStream = new RecordFromStream(Files.readSome(stream, BYTE_COUNT_IN_RECORD))
+
+  def from(byteString: ByteString): RecordFromByteString = new RecordFromByteString(byteString)
 
   def getKeyView(view: View[Byte]): View[Byte] = view.slice(BYTE_OFFSET_OF_KEY, BYTE_OFFSET_OF_KEY + BYTE_COUNT_IN_KEY)
 

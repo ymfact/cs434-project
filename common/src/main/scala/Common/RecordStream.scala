@@ -5,7 +5,7 @@ import java.io.{DataInputStream, EOFException}
 import com.google.protobuf.ByteString
 
 object RecordStream {
-  type RecordStream = LazyList[RecordFromStream]
+  type RecordStream = LazyList[Record]
 
   def from(stream: DataInputStream): RecordStream = {
     LazyList.continually({
@@ -15,6 +15,6 @@ object RecordStream {
     }).takeWhile(_.isDefined).map(_.get)
   }
 
-  def recordsToByteString(records: Iterable[RecordFromStream]): ByteString =
-    records.map(_.raw).map(ByteString.copyFrom).fold(ByteString.EMPTY)(_ concat _)
+  def recordsToByteString(records: Iterable[Record]): ByteString =
+    records.map(_.getByteString).fold(ByteString.EMPTY)(_ concat _)
 }

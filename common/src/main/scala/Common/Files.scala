@@ -43,10 +43,11 @@ object Files extends Logging {
 
   def outputStreamShouldBeClosed(path: Path): DataOutputStream = new DataOutputStream(new BufferedOutputStream(newOutputStream(path), FILE_CHUNK_SIE))
 
-  def write(path: Path, records: Iterable[RecordFromStream]): Unit = {
+  def write(path: Path, records: Iterable[Record]): Unit = {
     outputStream(path) { stream =>
-      for (record <- records)
-        stream.write(record.raw)
+      for (record <- records) {
+        record.write(stream)
+      }
     }
   }
 }
