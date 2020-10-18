@@ -11,11 +11,10 @@ import protocall.{DataForConnect, Empty}
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutorService, Future}
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 
-class WorkerListener(workerCount: Int, andThen: Seq[String] => Unit) extends Logging {
+class WorkerListener(workerCount: Int) extends Logging {
   private implicit val ec: ExecutionContextExecutorService = ExecutionContext.fromExecutorService(Executors.newSingleThreadExecutor)
 
-  private val workerDests = new ConcurrentLinkedQueue[String]
-  private val isRunStarted = new AtomicBoolean
+  val workerDests = new ConcurrentLinkedQueue[String]
   private val server = Common.Server.startMaster(new MasterServiceImpl, logger)
 
   def thisDest: String = s"$getMyAddress:${server.getPort}"
@@ -24,15 +23,13 @@ class WorkerListener(workerCount: Int, andThen: Seq[String] => Unit) extends Log
     override def connect(request: DataForConnect): Future[Empty] = {
       workerDests.add(request.dest)
       logger.info(s"connected: ${request.dest}")
-      if (workerDests.size() == workerCount)
-        if (!isRunStarted.getAndSet(true)) {
-          logger.info(s"All workers are attached.")
+      if (workerDests.size() == workerCount) {
+        logger.info(s"All workers are attached.")
+        Future {
           if (server != null)
             server.shutdown()
-          Future {
-            andThen(workerDests.asScala.toSeq)
-          }
         }
+      }
       Future.successful()
     }
   }
@@ -40,9 +37,4 @@ class WorkerListener(workerCount: Int, andThen: Seq[String] => Unit) extends Log
   def blockUntilShutdown(): Unit =
     if(server != null)
       server.awaitTermination()
-}
-
-object WorkerListener{
-  def listenAndGetWorkerDests(workerCount: Int)(andThen: Seq[String] => Unit): WorkerListener =
-    new WorkerListener(workerCount, andThen)
 }

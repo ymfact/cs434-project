@@ -8,6 +8,7 @@ import org.scalatestplus.junit.JUnitRunner
 
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, ExecutionContextExecutorService, Future}
+import scala.jdk.CollectionConverters.CollectionHasAsScala
 
 @RunWith(classOf[JUnitRunner])
 class TestIntegration extends AnyFunSuite {
@@ -17,15 +18,12 @@ class TestIntegration extends AnyFunSuite {
     private val PATH: Path = Paths.get("D:/works/csed434/project_temp")
     private val WORKER_COUNT = 2
 
-    private val workerListener = WorkerListener.listenAndGetWorkerDests(WORKER_COUNT){ workerDests =>
-      val ctx = new Context(
-        workerDests = workerDests
-      )
-      new Master(ctx)
-    }
+    private val workerListener = new WorkerListener(WORKER_COUNT)
 
-    val workerListenerFuture: Future[Unit] = Future {
-      workerListener.blockUntilShutdown();
+    val masterFuture: Future[Unit] = Future {
+      workerListener.blockUntilShutdown()
+      val ctx = new Context(workerDests = workerListener.workerDests.asScala.toSeq)
+      new Master(ctx)
     }
 
     val workerContexts: Seq[Worker.Context] = (0 until WORKER_COUNT).map(workerIndex => {
@@ -40,11 +38,12 @@ class TestIntegration extends AnyFunSuite {
 
   test("test") {
     new Launch {
-      workerContexts.map(new Worker(_)).map(worker => Future{
+      val workerFutures = workerContexts.map(new Worker(_)).map(worker => Future{
         worker.blockUntilShutdown()
-      }).foreach(Await.result(_, Duration.Inf))
+      })
 
-      Await.result(workerListenerFuture, Duration.Inf)
+      Await.result(Future.sequence(workerFutures), Duration.Inf)
+      Await.result(masterFuture, Duration.Inf)
     }
   }
 }
