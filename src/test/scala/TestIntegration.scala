@@ -24,6 +24,10 @@ class TestIntegration extends AnyFunSuite {
       new Master(ctx)
     }
 
+    val workerListenerFuture: Future[Unit] = Future {
+      workerListener.blockUntilShutdown();
+    }
+
     val workerContexts: Seq[Worker.Context] = (0 until WORKER_COUNT).map(workerIndex => {
       val workerPath = PATH.resolve(s"$workerIndex")
       new Worker.Context(
@@ -39,6 +43,8 @@ class TestIntegration extends AnyFunSuite {
       workerContexts.map(new Worker(_)).map(worker => Future{
         worker.blockUntilShutdown()
       }).foreach(Await.result(_, Duration.Inf))
+
+      Await.result(workerListenerFuture, Duration.Inf)
     }
   }
 }

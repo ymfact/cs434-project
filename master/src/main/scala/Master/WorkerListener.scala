@@ -37,6 +37,9 @@ class WorkerListener(workerCount: Int, andThen: Seq[String] => Unit) extends Log
     }
   }
 
+  def blockUntilShutdown(): Unit =
+    if(server != null)
+      server.awaitTermination()
 }
 
 object WorkerListener{
