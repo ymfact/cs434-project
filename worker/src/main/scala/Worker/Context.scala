@@ -72,8 +72,9 @@ class Context(x: NamedParam = Forced, masterDest: String, in: Seq[File], out: Fi
     val sorted = Sorts.sortFromSorteds(files)
     val grouped = sorted.grouped(RECORD_COUNT_IN_OUT_FILE).toSeq
     for ((sorted, outFileIndex) <- grouped.par.zipWithIndex) {
-      val path = new File(util.outDir, s"$outFileIndex").toPath
+      val path = new File(util.outDir, s"partition.$outFileIndex").toPath
       Files.write(path, sorted)
+      print(path.getFileName)
     }
   }
 }
