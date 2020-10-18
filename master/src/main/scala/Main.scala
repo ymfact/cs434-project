@@ -9,6 +9,7 @@ object Main {
     println(workerListener.thisDest)
     workerListener.blockUntilShutdown()
     val workerDests = workerListener.workerDests.asScala.toSeq
+    println(workerDests.mkString(" "))
     val ctx = new Context(workerDests = workerDests)
     new Master(ctx)
   }

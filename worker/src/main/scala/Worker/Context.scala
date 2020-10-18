@@ -74,7 +74,7 @@ class Context(x: NamedParam = Forced, masterDest: String, in: Seq[File], out: Fi
     for ((sorted, outFileIndex) <- grouped.par.zipWithIndex) {
       val path = new File(util.outDir, s"partition.$outFileIndex").toPath
       Files.write(path, sorted)
-      print(path.getFileName)
     }
+    println(grouped.indices.map(outFileIndex => s"partition.$outFileIndex").mkString(" "))
   }
 }
