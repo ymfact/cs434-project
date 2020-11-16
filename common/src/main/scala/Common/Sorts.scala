@@ -41,7 +41,7 @@ object Sorts {
 
   private def mergeSort(src: RecordArray, dest: RecordArray, step: Int): Unit = {
     val chunkSize = 1 << step
-    (0 until src.length by 2 * chunkSize).par.foreach(begin => {
+    (0 until src.length by 2 * chunkSize).foreach(begin => {
       val mid = src.length min (begin + chunkSize)
       val end = src.length min (begin + chunkSize + chunkSize)
       mergeSortConquer(src, dest, begin, mid, end)

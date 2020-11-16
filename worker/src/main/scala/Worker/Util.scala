@@ -60,11 +60,11 @@ class Util(x: NamedParam = Forced, masterDest: String, in: Seq[File], out: File)
     val keyRanges: Seq[ByteString] = data.keys
     val clients: Seq[ProtoCallStub] = data.dests.map(RPCClient.worker)
     val thisIndex: Int = data.dests.indexOf(thisDest())
-    inFiles.zipWithIndex.par.foreach { case(inFile, inFileIndex) =>
+    inFiles.zipWithIndex.foreach { case(inFile, inFileIndex) =>
       Files.inputStream(inFile.toPath) { stream =>
         val records = RecordStream.from(stream)
         val classified = records.groupBy(record => getOwnerOfRecord(record, keyRanges))
-        for ((workerIndex, records) <- classified.par) {
+        for ((workerIndex, records) <- classified) {
           if (workerIndex == thisIndex) {
             val path = new File(outDir, s"tempClassifiedMine$inFileIndex").toPath
             Files.write(path, records)

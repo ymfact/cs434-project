@@ -52,7 +52,7 @@ class Context(x: NamedParam = Forced, masterDest: String, in: Seq[File], out: Fi
   }
 
   private def sortEachPartition(): Unit = {
-    util.outDir.listFiles.filter(_.getName.startsWith("temp")).par.foreach({ file =>
+    util.outDir.listFiles.filter(_.getName.startsWith("temp")).foreach({ file =>
       logger.info(s"sorting partition: ${file.getName}")
       val data = Files.readAll(file)
       val sorted = Sorts.mergeSort(RecordArray.from(data))
@@ -71,7 +71,7 @@ class Context(x: NamedParam = Forced, masterDest: String, in: Seq[File], out: Fi
   private def sortAndWritePartitions(files: Seq[RecordStream]): Unit = {
     val sorted = Sorts.sortFromSorteds(files)
     val grouped = sorted.grouped(RECORD_COUNT_IN_OUT_FILE).toSeq
-    for ((sorted, outFileIndex) <- grouped.par.zipWithIndex) {
+    for ((sorted, outFileIndex) <- grouped.zipWithIndex) {
       val path = new File(util.outDir, s"partition.$outFileIndex").toPath
       Files.write(path, sorted)
     }
