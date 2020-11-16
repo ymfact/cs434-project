@@ -63,7 +63,7 @@ class Util(x: NamedParam = Forced, masterDest: String, in: Seq[File], out: File)
     inFiles.zipWithIndex.foreach { case(inFile, inFileIndex) =>
       Files.inputStream(inFile.toPath) { stream =>
         val records = RecordStream.from(stream)
-        val classified = records.groupBy(record => getOwnerOfRecord(record, keyRanges))
+        val classified = records.toSeq.groupBy(record => getOwnerOfRecord(record, keyRanges))
         for ((workerIndex, records) <- classified) {
           if (workerIndex == thisIndex) {
             val path = new File(outDir, s"tempClassifiedMine$inFileIndex").toPath

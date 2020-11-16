@@ -18,7 +18,7 @@ class Util(x: NamedParam = Forced, val workerDests: Seq[String]) extends Logging
     val records = data.map(byteString =>
       (0 until byteString.size / BYTE_COUNT_IN_RECORD).map(begin =>
         byteString.substring(begin * BYTE_COUNT_IN_RECORD, (begin + 1) * BYTE_COUNT_IN_RECORD)
-      ).map(Record.from).to(LazyList)
+      ).map(Record.from).iterator
     )
     val sorted = Sorts.sortFromSorteds(records)
     sorted.grouped(data.head.size() / BYTE_COUNT_IN_RECORD).map(_.head.copyKey).drop(1).toSeq

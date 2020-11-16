@@ -70,11 +70,14 @@ class Context(x: NamedParam = Forced, masterDest: String, in: Seq[File], out: Fi
   }
   private def sortAndWritePartitions(files: Seq[RecordStream]): Unit = {
     val sorted = Sorts.sortFromSorteds(files)
-    val grouped = sorted.grouped(RECORD_COUNT_IN_OUT_FILE).toSeq
-    for ((sorted, outFileIndex) <- grouped.zipWithIndex) {
+    var outFileIndex = 0
+
+    while (sorted.hasNext) {
+      val subset = sorted.take(RECORD_COUNT_IN_OUT_FILE).toSeq
       val path = new File(util.outDir, s"partition.$outFileIndex").toPath
-      Files.write(path, sorted)
+      Files.write(path, subset)
+      outFileIndex += 1
     }
-    println(grouped.indices.map(outFileIndex => s"partition.$outFileIndex").mkString(" "))
+    println((0 until outFileIndex).map(outFileIndex => s"partition.$outFileIndex").mkString(" "))
   }
 }
