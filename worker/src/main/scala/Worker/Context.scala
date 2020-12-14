@@ -74,10 +74,10 @@ class Context(x: NamedParam = Forced, masterDest: String, in: Seq[File], out: Fi
 
     while (sorted.hasNext) {
       val subset = sorted.take(RECORD_COUNT_IN_OUT_FILE).toSeq
-      val path = new File(util.outDir, s"partition.$outFileIndex").toPath
+      val path = new File(util.outDir, f"partition.$outFileIndex%04d").toPath
       Files.write(path, subset)
       outFileIndex += 1
     }
-    println((0 until outFileIndex).map(outFileIndex => s"partition.$outFileIndex").mkString(" "))
+    println((0 until outFileIndex).map(outFileIndex => f"partition.$outFileIndex%04d").mkString(" "))
   }
 }
