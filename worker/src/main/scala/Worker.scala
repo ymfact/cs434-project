@@ -25,6 +25,7 @@ class Worker(ctx: Context) extends Logging { self =>
     override def classify(request: DataForClassify): Future[Empty] = {
       logger.info(s"key received: ${request.keys.length}")
       ctx.classify(request)
+      Thread.sleep(10 * 1000)
       Future.successful()
     }
 
